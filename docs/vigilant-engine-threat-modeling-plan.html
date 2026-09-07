@@ -1,0 +1,456 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>vigilant-engine — Threat Modeling Plan</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  *{ box-sizing:border-box; }
+  body{
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color:#1f1e18;
+    font-size:10.5pt;
+    line-height:1.5;
+    margin:0;
+  }
+  h1{ font-size:19pt; margin:0 0 2px; }
+  .subtitle{ font-size:10pt; color:#5b5847; margin:0 0 18px; }
+  .meta{ font-size:8.5pt; color:#8a8672; margin-bottom:22px; border-bottom:1px solid #d8d4c4; padding-bottom:10px; }
+
+  h2{
+    font-size:12.5pt;
+    margin:22px 0 4px;
+    padding-top:10px;
+    border-top:1px solid #d8d4c4;
+    color:#1f1e18;
+  }
+  h2 .phase-tag{
+    font-size:8pt;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#2f6f6a;
+    display:block;
+    margin-bottom:2px;
+  }
+  .status{
+    display:inline-block;
+    font-size:7.5pt;
+    font-weight:600;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:1px 7px;
+    border-radius:9px;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+  .status.done{ background:#dce8e6; color:#1f4a46; }
+  .status.pending{ background:#efece2; color:#6b6752; }
+
+  ol, ul{ margin:6px 0 4px; padding-left:20px; }
+  li{ margin-bottom:4px; }
+  p.note{ color:#5b5847; font-size:9.5pt; margin:4px 0 0; }
+  .why{
+    background:#f7f5ee;
+    border-left:3px solid #2f6f6a;
+    padding:8px 12px;
+    margin:8px 0;
+    font-size:9.5pt;
+    color:#3a3826;
+  }
+  .why strong{ color:#1f1e18; }
+
+  figure{ margin:10px 0 4px; page-break-inside:avoid; }
+  figcaption{ font-size:9pt; color:#5b5847; margin-top:8px; }
+  .diagram-frame{
+    border:1px solid #d8d4c4;
+    border-radius:6px;
+    padding:12px;
+  }
+  .diagram-frame svg{ width:100%; height:auto; display:block; }
+  .legend{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin:8px 0 4px;
+  }
+  .legend-item{
+    border:1px solid #d8d4c4;
+    border-radius:6px;
+    padding:8px;
+    font-size:8pt;
+  }
+  .legend-item svg{ width:100%; height:24px; display:block; margin-bottom:4px; }
+  .legend-name{ font-weight:700; font-size:8.3pt; }
+  .legend-desc{ color:#5b5847; margin-top:2px; }
+
+  .footer{
+    margin-top:28px;
+    padding-top:10px;
+    border-top:1px solid #d8d4c4;
+    font-size:8pt;
+    color:#8a8672;
+  }
+</style>
+</head>
+<body>
+
+<h1>vigilant-engine — Threat Modeling Plan</h1>
+<p class="subtitle">STRIDE + OWASP Threat Dragon + ATT&amp;CK, layered on top of the scanner/ingestion pipeline</p>
+<div class="meta">Working plan — 2026-09-05 · reference alongside ARCHITECTURE.md and PLAN.md</div>
+
+<div class="why">
+  <strong>Sequencing decision:</strong> the manual threat model (Phase 2) happens
+  <strong>before</strong> the scanners are pointed at the finalized target (Phase 3) — not
+  before the tool-agnostic ingestion plumbing, which already exists and doesn't care what
+  target it's fed. Threat-model-first means the coverage table in Phase 4 reads as
+  "I predicted these threats independently, then checked tooling coverage" rather than
+  "I ran tools, then noticed gaps afterward" — same content, much stronger claim about judgment.
+</div>
+
+<h2><span class="phase-tag">Phase 0</span>STRIDE fundamentals <span class="status done">concepts learned</span></h2>
+<ol>
+  <li>DFD notation understood — the four element types (external entity, process, data store, data flow), and how to read/draw one. <span class="status done">concept learned</span><br><span class="note" style="display:block;margin-top:2px;">Not the same as "Juice Shop's DFD is done" — that's a separate artifact, still pending, in Phase 2 below.</span></li>
+  <li>Trust boundaries <span class="status done">concept learned</span>
+    <div style="margin-top:6px;font-size:9.5pt;line-height:1.55;">
+      <p style="margin:0 0 6px;"><strong>What it is:</strong> a line drawn across the DFD, cutting through specific
+      data-flow arrows, marking a point where the level of trust or control changes between what's on either side.
+      Not every arrow crosses one — only the ones where you'd genuinely have to verify something (identity,
+      permission) before letting data through, if you were being careful.</p>
+
+      <p style="margin:8px 0 3px;"><strong>Common kinds, so you can recognize one when you see it:</strong></p>
+      <ul style="margin:0 0 6px;">
+        <li><strong>Network boundary</strong> — internet vs. your internal network</li>
+        <li><strong>Process/machine boundary</strong> — data leaving one process/container and entering another you don't fully control</li>
+        <li><strong>Privilege boundary</strong> — anonymous user vs. authenticated user, regular user vs. admin</li>
+        <li><strong>Physical boundary</strong> — on-prem vs. cloud, your infra vs. a third party's</li>
+      </ul>
+
+      <p style="margin:8px 0 3px;"><strong>How to find them, mechanically:</strong> go arrow by arrow and ask one
+      question — "do both ends of this arrow trust each other equally, or does crossing it mean going from
+      something I don't control to something I do (or from lower privilege to higher)?" If yes to the second,
+      draw a boundary line across that arrow. If both ends are things you fully control at the same privilege
+      level, no boundary — it's just internal plumbing.</p>
+
+      <div class="why" style="margin:8px 0;">
+        <strong>Why STRIDE cares:</strong> threats cluster at boundaries, not in the interior. An attacker has to
+        <em>cross</em> a boundary to do damage — the one point where they're forced to either hold valid
+        credentials or exploit something that lets them skip needing them. Everything sitting entirely on one
+        side of every boundary has a much smaller realistic threat surface than anything a boundary-crossing
+        arrow touches.
+      </div>
+
+      <p style="margin:8px 0 0;"><strong>Applied to the practice sketch:</strong> CI → <code>POST /ingest</code>
+      (boundary — CI is outside your control), Process ↔ DB <code>INSERT/UPDATE</code>/<code>SELECT</code>
+      (no boundary — your own API talking to its own DB, same trust level), Process →
+      <code>GET /findings, /stats</code> → Dashboard (boundary — a separate, externally-driven client). One
+      boundary line covers both crossings, since they're the same boundary conceptually: "anything outside
+      vigilant-engine's own process."</p>
+    </div>
+  </li>
+  <li>Element-type → applicable-STRIDE-category mapping <span class="status done">concept learned</span>
+    <table style="border-collapse:collapse;margin-top:6px;font-size:9pt;">
+      <tr style="border-bottom:1px solid #d8d4c4;">
+        <th style="text-align:left;padding:3px 10px 3px 0;">Element</th>
+        <th style="padding:3px 6px;">S</th><th style="padding:3px 6px;">T</th><th style="padding:3px 6px;">R</th><th style="padding:3px 6px;">I</th><th style="padding:3px 6px;">D</th><th style="padding:3px 6px;">E</th>
+      </tr>
+      <tr><td style="padding:3px 10px 3px 0;">External entity</td><td style="text-align:center;">✓</td><td></td><td style="text-align:center;">✓</td><td></td><td></td><td></td></tr>
+      <tr><td style="padding:3px 10px 3px 0;">Process</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td></tr>
+      <tr><td style="padding:3px 10px 3px 0;">Data flow</td><td></td><td style="text-align:center;">✓</td><td></td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td></td></tr>
+      <tr><td style="padding:3px 10px 3px 0;">Data store</td><td></td><td style="text-align:center;">✓</td><td style="text-align:center;font-size:8pt;color:#5b5847;">if log</td><td style="text-align:center;">✓</td><td style="text-align:center;">✓</td><td></td></tr>
+    </table>
+
+    <div style="margin-top:8px;font-size:9.5pt;line-height:1.55;">
+      <p style="margin:0 0 3px;"><strong>Why each cell is what it is</strong> (worth understanding, not memorizing):</p>
+      <ul style="margin:0 0 6px;">
+        <li><strong>Spoofing</strong> only applies to things that have or claim an identity — a user, a service,
+        a process. A data flow or a data store isn't "someone," so it can't be impersonated. That's why only
+        External entity and Process get an S.</li>
+        <li><strong>Repudiation</strong> only applies to things that take an action that could later be denied —
+        a user denying they did something, a process denying it handled a request. A data store gets it only
+        when it's specifically a log — a log's entire job is being the evidence that defeats repudiation; if that
+        log can be silently altered or deleted, repudiation becomes possible again. <code>findings.db</code>
+        isn't a log in that sense (it's primary data, not an audit trail), so no R for it.</li>
+        <li><strong>Tampering</strong> and <strong>Information Disclosure</strong> apply to anything that holds or
+        carries data — flows (data in transit can be intercepted/modified) and stores (data at rest can be
+        read/altered). Doesn't apply to an external entity itself — you don't "tamper with a user," you tamper
+        with what they send, which is a flow.</li>
+        <li><strong>Denial of Service</strong> applies to anything that must stay available — flows can be flooded,
+        stores can be exhausted/locked, processes can be crashed. External entities are outside your system, so
+        keeping them "available" isn't your problem.</li>
+        <li><strong>Elevation of Privilege</strong> only applies to a Process — it's the only element type that
+        actually executes with a privilege level. A data store or a flow has no privilege to escalate into.</li>
+      </ul>
+
+      <p style="margin:8px 0 3px;"><strong>Applied to the practice sketch, row by row:</strong></p>
+      <ul style="margin:0 0 6px;">
+        <li><code>CI scanner jobs</code> (external entity) → Spoofing, Repudiation</li>
+        <li><code>Dashboard</code> (external entity) → Spoofing, Repudiation</li>
+        <li><code>Ingestion API</code> (process) → all six</li>
+        <li><code>findings.db</code> (data store, not a log) → Tampering, Information Disclosure, DoS</li>
+        <li>Each data flow (<code>POST /ingest</code>, <code>INSERT/UPDATE</code>, <code>SELECT</code>, <code>GET</code>) → Tampering, Information Disclosure, DoS</li>
+      </ul>
+
+      <div class="why" style="margin:8px 0 0;">
+        <strong>What falls out for free:</strong> the Process is the only element carrying all six threat
+        categories, and it's also the only element sitting on both sides of the trust boundary — exactly why
+        it's the highest-value thing to scrutinize. The table isn't just bookkeeping; it tells you where to
+        spend your attention.
+      </div>
+    </div>
+  </li>
+</ol>
+<p class="note">All three items are concept-level — the systematic walk itself (applying this table row-by-row to real elements) is the work of Phase 2, not yet done.</p>
+
+<h2>Practice sketch — NOT Juice Shop, just for learning the notation</h2>
+<p class="note">This diagram is vigilant-engine's own ingestion service — familiar code, used only to rehearse spotting
+the four element types before doing this for real. It does not count toward Phase 2. Juice Shop's DFDs
+(login/auth, checkout, order/profile access) still need to be drawn from scratch in Phase 2, step 2.</p>
+<figure>
+  <div class="legend">
+    <div class="legend-item">
+      <svg viewBox="0 0 56 36"><rect x="4" y="6" width="48" height="24" fill="none" stroke="#1f1e18" stroke-width="2"/></svg>
+      <div class="legend-name">External entity</div>
+      <div class="legend-desc">Outside the system — a user, a service, a CI job.</div>
+    </div>
+    <div class="legend-item">
+      <svg viewBox="0 0 56 36"><rect x="4" y="6" width="48" height="24" rx="10" fill="none" stroke="#1f1e18" stroke-width="2"/></svg>
+      <div class="legend-name">Process</div>
+      <div class="legend-desc">Does work on data — an API handler, a function.</div>
+    </div>
+    <div class="legend-item">
+      <svg viewBox="0 0 56 36"><path d="M 44 8 L 8 8 L 8 28 L 44 28" fill="none" stroke="#1f1e18" stroke-width="2"/></svg>
+      <div class="legend-name">Data store</div>
+      <div class="legend-desc">Data at rest — a DB table, a file, a cache, a log.</div>
+    </div>
+    <div class="legend-item">
+      <svg viewBox="0 0 56 36">
+        <defs><marker id="pdf-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#1f1e18"/></marker></defs>
+        <line x1="6" y1="18" x2="42" y2="18" stroke="#1f1e18" stroke-width="2" marker-end="url(#pdf-arrow)"/>
+      </svg>
+      <div class="legend-name">Data flow</div>
+      <div class="legend-desc">Movement between two elements above.</div>
+    </div>
+  </div>
+
+  <div class="diagram-frame">
+    <svg viewBox="0 0 880 400" role="img" aria-label="Data flow diagram of the ingestion service">
+      <defs>
+        <marker id="arrow-ink-pdf" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#1f1e18"/>
+        </marker>
+        <marker id="arrow-accent-pdf" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="#2f6f6a"/>
+        </marker>
+      </defs>
+
+      <rect x="30" y="30" width="190" height="64" fill="none" stroke="#1f1e18" stroke-width="2"/>
+      <text x="125" y="58" text-anchor="middle" font-size="13" font-weight="600" fill="#1f1e18">CI scanner jobs</text>
+      <text x="125" y="76" text-anchor="middle" font-size="10" letter-spacing="0.06em" fill="#1f1e18" opacity="0.55">EXTERNAL ENTITY</text>
+
+      <rect x="30" y="306" width="190" height="64" fill="none" stroke="#1f1e18" stroke-width="2"/>
+      <text x="125" y="332" text-anchor="middle" font-size="13" font-weight="600" fill="#1f1e18">Dashboard</text>
+      <text x="125" y="348" text-anchor="middle" font-size="11" fill="#1f1e18" opacity="0.8">(Next.js)</text>
+      <text x="125" y="362" text-anchor="middle" font-size="10" letter-spacing="0.06em" fill="#1f1e18" opacity="0.55">EXTERNAL ENTITY</text>
+
+      <rect x="370" y="150" width="220" height="100" rx="14" fill="none" stroke="#1f1e18" stroke-width="2"/>
+      <text x="480" y="192" text-anchor="middle" font-size="13" font-weight="600" fill="#1f1e18">Ingestion API</text>
+      <text x="480" y="210" text-anchor="middle" font-size="11" fill="#1f1e18" opacity="0.8">(FastAPI, main.py)</text>
+      <text x="480" y="234" text-anchor="middle" font-size="10" letter-spacing="0.06em" fill="#1f1e18" opacity="0.55">PROCESS</text>
+
+      <path d="M 850 165 L 680 165 L 680 235 L 850 235" fill="none" stroke="#1f1e18" stroke-width="2"/>
+      <text x="765" y="196" text-anchor="middle" font-size="13" font-weight="600" fill="#1f1e18">findings.db</text>
+      <text x="765" y="213" text-anchor="middle" font-size="11" fill="#1f1e18" opacity="0.8">(SQLite)</text>
+      <text x="765" y="252" text-anchor="middle" font-size="10" letter-spacing="0.06em" fill="#1f1e18" opacity="0.55">DATA STORE</text>
+
+      <line x1="220" y1="66" x2="362" y2="176" stroke="#2f6f6a" stroke-width="2.25" marker-end="url(#arrow-accent-pdf)"/>
+      <text x="292" y="108" text-anchor="middle" font-size="11.5" font-weight="600" fill="#2f6f6a">POST /ingest</text>
+      <text x="292" y="123" text-anchor="middle" font-size="10.5" fill="#2f6f6a" opacity="0.85">raw scanner JSON</text>
+
+      <line x1="592" y1="188" x2="678" y2="188" stroke="#1f1e18" stroke-width="2" marker-end="url(#arrow-ink-pdf)"/>
+      <text x="635" y="176" text-anchor="middle" font-size="11" fill="#1f1e18" opacity="0.85">INSERT / UPDATE</text>
+
+      <line x1="678" y1="216" x2="592" y2="216" stroke="#1f1e18" stroke-width="2" marker-end="url(#arrow-ink-pdf)"/>
+      <text x="635" y="234" text-anchor="middle" font-size="11" fill="#1f1e18" opacity="0.85">SELECT</text>
+
+      <line x1="368" y1="228" x2="222" y2="332" stroke="#2f6f6a" stroke-width="2.25" marker-end="url(#arrow-accent-pdf)"/>
+      <text x="298" y="286" text-anchor="middle" font-size="11.5" font-weight="600" fill="#2f6f6a">GET /findings, /stats</text>
+      <text x="298" y="301" text-anchor="middle" font-size="10.5" fill="#2f6f6a" opacity="0.85">JSON response</text>
+    </svg>
+  </div>
+  <figcaption>
+    Teal marks the two flows crossing from an external entity into the ingestion API —
+    the only two places something outside your control reaches in. Neither currently
+    checks who's on the other end; that gap is what trust-boundary analysis (Phase 0,
+    step 2) is built to surface. Reflects <em>ingestion/app/main.py</em> and
+    <em>ingestion/app/db.py</em> as of this session.
+  </figcaption>
+</figure>
+
+<h2><span class="phase-tag">Phase 1</span>Lock and stand up the target <span class="status done">done</span></h2>
+<ol>
+  <li>Juice Shop wired in as a git submodule (<code>demo-target/</code> → <code>github.com/juice-shop/juice-shop</code>), pinned to <code>v20.2.0</code>.</li>
+  <li>Verified running locally via <code>npm start</code> (dependencies were already installed in the submodule) — reachable and working.</li>
+  <li>Docker was checked and isn't installed on this machine yet — not a blocker for now; noted as a Phase 3 dependency, since the ZAP DAST job and CI will want a pinned <code>bkimminich/juice-shop:v20.2.0</code> container so the scan target is reproducible, rather than however it happens to run locally.</li>
+</ol>
+<p class="note">Not yet done, and not a Phase 1 blocker: the whole repo (including this submodule reference) is still staged, not committed — there are no commits on this branch yet. That's a separate decision (when to make the initial commit), not something this phase depends on.</p>
+
+<h2><span class="phase-tag">Phase 2</span>Manual threat model (the part that proves judgment) <span class="status pending">not started</span></h2>
+<p class="note">Target: Juice Shop, not vigilant-engine. Nothing in this phase exists yet — the practice sketch above doesn't count.</p>
+
+<h3 style="font-size:11pt;margin:14px 0 4px;">The approach taken for Phase 2 — how to actually assess the data flow</h3>
+<div style="font-size:9.5pt;line-height:1.55;">
+  <p style="margin:0 0 6px;">Not pure static code reading — the standard AppSec method blends
+  <strong>black-box traffic observation</strong> and <strong>white-box source reading</strong>, with a debugger
+  as an occasional deep-dive tool, not the default. In priority order, per flow:</p>
+
+  <ol style="margin:0 0 6px;">
+    <li style="margin-bottom:6px;"><strong>Watch the real traffic first (black-box).</strong> Before touching
+    source, perform the action live in the running app and watch what actually crosses the wire — code can have
+    dead paths or behavior that differs from what a quick read suggests, so this is the most reliable way to know
+    the real data flow.
+      <ul style="margin:4px 0 0;">
+        <li><strong>Browser DevTools → Network tab</strong> — zero install, works immediately against the running
+        Juice Shop instance. Inspect the exact URL, method, request body, response body, and any
+        headers/cookies set.</li>
+        <li><strong>An intercepting proxy</strong> — Burp Suite (Community, free) or OWASP ZAP (already in the
+        scanner list) sit between browser and server and let you see, and even modify, every request live.
+        Worth learning regardless of this project — one of the most standard AppSec tools there is.
+        Installed via <code>brew install --cask burp-suite</code> (Community Edition, free) — no VM/Kali needed,
+        it's a regular desktop app. Setup: launch → Temporary project → Use Burp defaults → Proxy tab →
+        Intercept → <strong>Open Browser</strong> (Burp's own pre-configured Chromium, certificate already
+        trusted) → browse the app in that window; every request lands in <strong>Proxy → HTTP History</strong>.
+        Core workflow: right-click a request → <strong>Send to Repeater</strong> to edit and resend it
+        repeatedly (replaces retyping curl commands); <strong>Comparer</strong> to diff two responses
+        side by side; <strong>Target → Site map</strong> to see every endpoint touched this session.</li>
+      </ul>
+      <p style="margin:4px 0 0;">This step answers the <strong>data flow arrows</strong> precisely: what's
+      actually in the request (just email + password, or more?), what's in the response (a JWT? where — body
+      or cookie? does it leak more fields than needed?).</p>
+    </li>
+    <li style="margin-bottom:6px;"><strong>Read the source second (white-box)</strong>, now that the endpoint is
+    known. Traffic capture can't show server-side logic — only inputs and outputs. Grep for the exact route
+    (e.g. <code>POST /rest/user/login</code>) in <code>demo-target/routes/</code>, follow it into the handler,
+    read it step by step: DB query, password comparison, token issuance. This fills in the
+    <strong>Process</strong> internals.</li>
+    <li style="margin-bottom:6px;"><strong>For the DB layer, don't guess from model code — turn on query
+    logging.</strong> Juice Shop uses Sequelize, which has a config option to print every SQL statement it runs
+    to the console. Flip it on, trigger the action again, and see the literal <code>SELECT</code>/<code>INSERT</code>
+    executed — more reliable than reading model definitions and inferring the query.</li>
+    <li><strong>A debugger is the last resort, not the first move.</strong> Attaching Node's inspector
+    (<code>node --inspect</code>) with a breakpoint in the handler is useful when the first three steps leave
+    something ambiguous (e.g. which of two code paths actually executes) — but too slow to use as the default
+    method across a whole flow.</li>
+  </ol>
+
+  <div class="why" style="margin:6px 0 0;">
+    <strong>Why this order, not source-reading alone:</strong> black-box traffic tells you ground truth about
+    what's transmitted; white-box reading tells you what happens inside the box; query logging confirms the
+    data store interaction directly; the debugger is for resolving ambiguity, not for first-pass mapping. Using
+    only source reading risks modeling code paths that aren't actually reachable, or missing behavior that only
+    shows up at runtime.
+  </div>
+
+  <p style="margin:14px 0 4px;"><strong>Since the target is a REST API, cross-check coverage afterward against
+  the OWASP API Security Top 10 (2023) — as a coverage check, not the thing driving exploration.</strong> Each
+  row is what to actually look for in the Network tab, not just the category name:</p>
+  <div style="overflow-x:auto;">
+  <table style="border-collapse:collapse;margin-top:6px;font-size:8.5pt;width:100%;">
+    <tr style="border-bottom:1px solid #d8d4c4;">
+      <th style="text-align:left;padding:3px 8px 3px 0;">#</th>
+      <th style="text-align:left;padding:3px 8px;">Category</th>
+      <th style="text-align:left;padding:3px 8px;">What to look for in Network tab</th>
+    </tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API1</td><td style="padding:3px 8px;vertical-align:top;">Broken Object Level Authorization</td><td style="padding:3px 8px;">Any URL/param holding an object ID — numeric, sequential, or guessable. Swap it while authenticated as yourself.</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API2</td><td style="padding:3px 8px;vertical-align:top;">Broken Authentication</td><td style="padding:3px 8px;">Does the token expire (<code>exp</code> claim)? Any rate-limit on repeated failed logins (watch for <code>429</code>)? Predictable reset tokens?</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API3</td><td style="padding:3px 8px;vertical-align:top;">Broken Object Property Level Authorization</td><td style="padding:3px 8px;">Response fields the UI never displays (over-exposure); on PUT/PATCH, try adding a field you didn't send (e.g. <code>"role":"admin"</code>) — accepted (mass assignment)?</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API4</td><td style="padding:3px 8px;vertical-align:top;">Unrestricted Resource Consumption</td><td style="padding:3px 8px;">Pagination/quantity params — send an extreme value, see if the server just complies with no cap.</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API5</td><td style="padding:3px 8px;vertical-align:top;">Broken Function Level Authorization</td><td style="padding:3px 8px;">Admin-only-looking endpoints called with a regular user's token — 200 instead of 401/403?</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API6</td><td style="padding:3px 8px;vertical-align:top;">Unrestricted Access to Sensitive Business Flows</td><td style="padding:3px 8px;">Business actions with no throttle — repeat a "submit review"/"apply coupon" POST rapidly; anything ever blocks it?</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API7</td><td style="padding:3px 8px;vertical-align:top;">Server-Side Request Forgery</td><td style="padding:3px 8px;">Any request/field accepting a URL as input (image-via-URL, a webhook/import feature) — flag for later testing.</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API8</td><td style="padding:3px 8px;vertical-align:top;">Security Misconfiguration</td><td style="padding:3px 8px;">Response headers: missing CSP/<code>X-Content-Type-Options</code>, exposed <code>Server</code>/<code>X-Powered-By</code>, permissive CORS, verbose errors.</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API9</td><td style="padding:3px 8px;vertical-align:top;">Improper Inventory Management</td><td style="padding:3px 8px;">Undocumented/old API versions — check for an exposed Swagger/OpenAPI doc revealing endpoints the UI never calls.</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">API10</td><td style="padding:3px 8px;vertical-align:top;">Unsafe Consumption of APIs</td><td style="padding:3px 8px;">About the server's trust in third-party APIs it calls — not visible in your own browser traffic; needs source review.</td></tr>
+  </table>
+  </div>
+  <p class="note" style="margin-top:6px;">Source: <a href="https://owasp.org/API-Security/editions/2023/en/0x11-t10/">owasp.org/API-Security/editions/2023</a>.
+  Findings from actually running this sweep against Juice Shop live in <code>THREAT_MODEL.md</code>, Flow 4.</p>
+</div>
+
+<ol>
+  <li>Pick 2–3 bounded flows, not the whole app: login/auth, basket/checkout, order/profile access.</li>
+  <li>Draw a DFD for each flow (browser, REST API, JWT check, DB, admin logic) — <strong>this is Juice Shop's DFD, still to be drawn.</strong></li>
+  <li>Mark trust boundaries on each.</li>
+  <li>Walk STRIDE per element using the Phase 0 type-mapping; brainstorm a concrete threat per applicable (element, category) pair.</li>
+  <li>For each threat, note: security property violated, plausible impact, and whether it matches a known Juice Shop challenge.</li>
+  <li>Transcribe the finished model into OWASP Threat Dragon — shareable diagram + JSON export, checked into the repo.</li>
+</ol>
+
+<h3 style="font-size:11pt;margin:16px 0 4px;">Phase 2 stock-take — 2026-09-07 checkpoint</h3>
+<div style="font-size:9.5pt;line-height:1.55;">
+  <p style="margin:0 0 6px;"><strong>Honest status against the six steps above, not just "done/not done":</strong></p>
+  <table style="border-collapse:collapse;margin:6px 0;font-size:9pt;width:100%;">
+    <tr style="border-bottom:1px solid #d8d4c4;"><th style="text-align:left;padding:3px 8px 3px 0;">Step</th><th style="text-align:left;padding:3px 8px;">Status</th></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">1. Pick 2–3 bounded flows</td><td style="padding:3px 8px;">Loosely done — Login/Auth, Basket, <code>whoami</code>, plus an emergent "Flow 4" (functional-authorization sweep) that wasn't planned but produced the best findings</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">2. Draw a DFD per flow</td><td style="padding:3px 8px;"><strong>Not done.</strong> Only the practice sketch (vigilant-engine's own ingestion service) exists — no Juice Shop DFD yet</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">3. Mark trust boundaries</td><td style="padding:3px 8px;"><strong>Not done</strong> — no DFD exists yet to mark them on</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">4. Walk STRIDE per element</td><td style="padding:3px 8px;">Done <em>informally</em> — each finding got a STRIDE category after the fact, not via the structured element × category walk</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">5. Note property/impact/challenge match</td><td style="padding:3px 8px;"><strong>Done well</strong> — every finding in <code>THREAT_MODEL.md</code> has this</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">6. Transcribe into Threat Dragon</td><td style="padding:3px 8px;"><strong>Not done</strong></td></tr>
+  </table>
+
+  <p style="margin:8px 0 3px;"><strong>What actually happened instead:</strong> black-box (DevTools/Burp) and
+  white-box (source review) exploratory testing, guided by the OWASP API Security Top 10 rather than a formal
+  DFD-first walk. Result: <strong>9 confirmed findings</strong> (JWT over-exposure; two flavors of basket BOLA —
+  a missing check and a bypassed one; mass user-table disclosure; unauthorized product-price tampering; no
+  login rate limiting; non-expiring JWTs; CORS/CSP gaps; exposed API schema), 2 open candidates, and 3 OWASP
+  categories (API4, API6, API7) not yet touched. Full detail in <code>THREAT_MODEL.md</code>.</p>
+
+  <div class="why" style="margin:8px 0 0;">
+    <strong>Roadblocks and conceptual corrections made along the way</strong> (kept here so this checkpoint is
+    reviewable, not just a status line): confusing a "bounded flow" (an analyst's scoping choice — pick a
+    tractable slice of the app) with a "trust boundary" (a property of the system — where trust level actually
+    changes) because they share a word; assuming trust boundaries only separate privilege <em>levels</em>
+    (customer vs. admin) until the basket BOLA showed they also separate <em>identities</em> at the same level
+    (your data vs. a peer's); briefly misattributing the basket-tampering bug to the <code>clarinet</code>
+    parsing library, when the library behaved correctly and the bug was Juice Shop's own inconsistent use of
+    its output. None of these blocked progress — each got corrected in-session — but worth keeping visible
+    here rather than only in the polished final writeup, since "what went sideways and got fixed" is itself
+    useful interview material.
+  </div>
+
+  <p style="margin:8px 0 0;"><strong>Not wasted effort:</strong> steps 2/3/6 remain, but formalizing them now
+  means populating a DFD and Threat Dragon file with <em>real, already-confirmed</em> findings rather than
+  hypothetical ones — arguably a better order than doing it the other way round.</p>
+</div>
+
+<h2><span class="phase-tag">Phase 3</span>Set up and run the scanners</h2>
+<ol>
+  <li>Semgrep, npm audit, Snyk, gitleaks against the source, in CI.</li>
+  <li>OWASP ZAP baseline scan against the running instance.</li>
+  <li>Trivy against the built <code>ingestion/</code> and <code>dashboard/</code> images.</li>
+  <li>Feed every tool's raw output into the already-built ingestion API.</li>
+</ol>
+
+<h2><span class="phase-tag">Phase 4</span>Coverage table (the punchline artifact)</h2>
+<ol>
+  <li>For every threat identified in Phase 2, check: did any Phase 3 scanner actually surface it?</li>
+  <li>Record: tool, yes/no, and why (or why not) — this is the evidence that automated tooling alone wouldn't have found it.</li>
+</ol>
+
+<h2><span class="phase-tag">Phase 5</span>ATT&amp;CK mapping — only where it's honest</h2>
+<ol>
+  <li>For threats resulting in a foothold or privilege gain (e.g. admin bypass), map to the relevant ATT&amp;CK tactic/technique.</li>
+  <li>For pure app-logic threats with no real ATT&amp;CK analog, write "N/A" explicitly rather than forcing a mapping.</li>
+</ol>
+
+<h2><span class="phase-tag">Phase 6</span>Document and surface it</h2>
+<ol>
+  <li>Write it up as <code>THREAT_MODEL.md</code> (DFDs, STRIDE threat list, Threat Dragon export, coverage table, ATT&amp;CK annotations).</li>
+  <li>Link it prominently from the main README — this is the artifact doing the CV/interview work, so it shouldn't be buried.</li>
+</ol>
+
+<div class="footer">vigilant-engine · generated as a working plan, not a finished deliverable — expect this to change as each phase is actually worked through.</div>
+
+</body>
+</html>
