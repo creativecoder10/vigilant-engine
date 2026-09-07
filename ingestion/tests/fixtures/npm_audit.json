@@ -1,0 +1,22 @@
+{
+  "vulnerabilities": {
+    "lodash": {
+      "name": "lodash",
+      "severity": "high",
+      "range": "<4.17.21",
+      "fixAvailable": true,
+      "via": [
+        {
+          "source": 1523,
+          "title": "Prototype Pollution in lodash",
+          "url": "https://github.com/advisories/GHSA-jf85-cpcp-j695",
+          "severity": "high",
+          "cwe": ["CWE-1321"]
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "vulnerabilities": { "critical": 0, "high": 1, "moderate": 0, "low": 0, "info": 0 }
+  }
+}

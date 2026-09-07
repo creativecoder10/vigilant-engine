@@ -1,0 +1,15 @@
+[
+  {
+    "Description": "AWS Access Key",
+    "StartLine": 12,
+    "EndLine": 12,
+    "File": "config/aws.py",
+    "RuleID": "aws-access-token",
+    "Match": "AKIA********************",
+    "Secret": "AKIA********************",
+    "Commit": "a1b2c3d4",
+    "Author": "dev@example.com",
+    "Email": "dev@example.com",
+    "Date": "2026-08-01T10:00:00Z"
+  }
+]

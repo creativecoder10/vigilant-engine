@@ -1,0 +1,20 @@
+{
+  "site": [
+    {
+      "@name": "http://localhost:3000",
+      "alerts": [
+        {
+          "pluginid": "40012",
+          "alert": "Cross Site Scripting (Reflected)",
+          "riskdesc": "High (Medium)",
+          "desc": "Reflected Cross Site Scripting (XSS) may be possible via the search query parameter.",
+          "cweid": "79",
+          "solution": "Validate and sanitize all user input; encode output for the rendering context.",
+          "instances": [
+            { "uri": "http://localhost:3000/#/search?q=<script>alert(1)</script>", "method": "GET" }
+          ]
+        }
+      ]
+    }
+  ]
+}

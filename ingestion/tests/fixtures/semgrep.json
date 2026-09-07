@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "check_id": "python.lang.security.audit.eval-detected.eval-detected",
+      "path": "routes/search.py",
+      "start": { "line": 42, "col": 5 },
+      "end": { "line": 42, "col": 30 },
+      "extra": {
+        "message": "Detected use of eval(). eval() can be dangerous if used to evaluate dynamic content.",
+        "severity": "ERROR",
+        "metadata": {
+          "cwe": ["CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"],
+          "owasp": ["A03:2021 - Injection"]
+        }
+      }
+    }
+  ]
+}

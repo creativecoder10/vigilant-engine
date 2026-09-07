@@ -1,0 +1,13 @@
+{
+  "vulnerabilities": [
+    {
+      "id": "SNYK-JS-MINIMIST-559764",
+      "title": "Prototype Pollution",
+      "severity": "medium",
+      "packageName": "minimist",
+      "version": "0.0.8",
+      "description": "minimist prior to 1.2.6 is vulnerable to Prototype Pollution via file arguments.",
+      "fixedIn": ["1.2.6"]
+    }
+  ]
+}
