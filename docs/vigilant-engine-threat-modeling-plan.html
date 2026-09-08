@@ -295,8 +295,8 @@ the four element types before doing this for real. It does not count toward Phas
 </ol>
 <p class="note">Not yet done, and not a Phase 1 blocker: the whole repo (including this submodule reference) is still staged, not committed — there are no commits on this branch yet. That's a separate decision (when to make the initial commit), not something this phase depends on.</p>
 
-<h2><span class="phase-tag">Phase 2</span>Manual threat model (the part that proves judgment) <span class="status pending">not started</span></h2>
-<p class="note">Target: Juice Shop, not vigilant-engine. Nothing in this phase exists yet — the practice sketch above doesn't count.</p>
+<h2><span class="phase-tag">Phase 2</span>Manual threat model (the part that proves judgment) <span class="status done">done</span></h2>
+<p class="note">Target: Juice Shop, not vigilant-engine. 10 confirmed findings, DFD drawn, trust boundaries marked, all populated into OWASP Threat Dragon — see the 2026-09-07 stock-take below for the full, honest account of how this actually got done (not in the order originally planned).</p>
 
 <h3 style="font-size:11pt;margin:14px 0 4px;">The approach taken for Phase 2 — how to actually assess the data flow</h3>
 <div style="font-size:9.5pt;line-height:1.55;">
@@ -386,42 +386,86 @@ the four element types before doing this for real. It does not count toward Phas
   <li>Transcribe the finished model into OWASP Threat Dragon — shareable diagram + JSON export, checked into the repo.</li>
 </ol>
 
-<h3 style="font-size:11pt;margin:16px 0 4px;">Phase 2 stock-take — 2026-09-07 checkpoint</h3>
+<h3 style="font-size:11pt;margin:16px 0 4px;">Phase 2 stock-take — 2026-09-07 checkpoint, updated</h3>
 <div style="font-size:9.5pt;line-height:1.55;">
-  <p style="margin:0 0 6px;"><strong>Honest status against the six steps above, not just "done/not done":</strong></p>
+  <p style="margin:0 0 6px;"><strong>Honest status against the six steps above — all six now complete, though
+  not in the planned order:</strong></p>
   <table style="border-collapse:collapse;margin:6px 0;font-size:9pt;width:100%;">
     <tr style="border-bottom:1px solid #d8d4c4;"><th style="text-align:left;padding:3px 8px 3px 0;">Step</th><th style="text-align:left;padding:3px 8px;">Status</th></tr>
     <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">1. Pick 2–3 bounded flows</td><td style="padding:3px 8px;">Loosely done — Login/Auth, Basket, <code>whoami</code>, plus an emergent "Flow 4" (functional-authorization sweep) that wasn't planned but produced the best findings</td></tr>
-    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">2. Draw a DFD per flow</td><td style="padding:3px 8px;"><strong>Not done.</strong> Only the practice sketch (vigilant-engine's own ingestion service) exists — no Juice Shop DFD yet</td></tr>
-    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">3. Mark trust boundaries</td><td style="padding:3px 8px;"><strong>Not done</strong> — no DFD exists yet to mark them on</td></tr>
-    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">4. Walk STRIDE per element</td><td style="padding:3px 8px;">Done <em>informally</em> — each finding got a STRIDE category after the fact, not via the structured element × category walk</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">2. Draw a DFD per flow</td><td style="padding:3px 8px;"><strong>Done</strong> — <code>docs/juice-shop-threat-model.json</code>, rebuilt from Juice Shop's own shipped element/flow list (see below for why it had to be rebuilt rather than opened directly)</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">3. Mark trust boundaries</td><td style="padding:3px 8px;"><strong>Done</strong> — 3 boundaries: Browser/Client-side (all 4 actors + <code>Angular Frontend</code>, since that code runs client-side), a nested Privileged-users boundary (<code>Admin</code>/<code>Accounting</code>), and Trusted backend (<code>Application Server</code>, <code>B2B API</code>, the 3 stores)</td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">4. Walk STRIDE per element</td><td style="padding:3px 8px;">Done <em>informally</em> for confirmed findings — each got a STRIDE category after the fact. Done <em>formally</em> as a generative exercise separately — see "threats by element type" below</td></tr>
     <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">5. Note property/impact/challenge match</td><td style="padding:3px 8px;"><strong>Done well</strong> — every finding in <code>THREAT_MODEL.md</code> has this</td></tr>
-    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">6. Transcribe into Threat Dragon</td><td style="padding:3px 8px;"><strong>Not done</strong></td></tr>
+    <tr><td style="padding:3px 8px 3px 0;vertical-align:top;">6. Transcribe into Threat Dragon</td><td style="padding:3px 8px;"><strong>Done</strong> — all 10 confirmed findings attached as threat entries (title, STRIDE type, severity, description, mitigation), confirmed rendering correctly in the live app</td></tr>
   </table>
 
-  <p style="margin:8px 0 3px;"><strong>What actually happened instead:</strong> black-box (DevTools/Burp) and
-  white-box (source review) exploratory testing, guided by the OWASP API Security Top 10 rather than a formal
-  DFD-first walk. Result: <strong>9 confirmed findings</strong> (JWT over-exposure; two flavors of basket BOLA —
-  a missing check and a bypassed one; mass user-table disclosure; unauthorized product-price tampering; no
-  login rate limiting; non-expiring JWTs; CORS/CSP gaps; exposed API schema), 2 open candidates, and 3 OWASP
-  categories (API4, API6, API7) not yet touched. Full detail in <code>THREAT_MODEL.md</code>.</p>
+  <p style="margin:8px 0 3px;"><strong>What actually happened:</strong> black-box (DevTools/Burp) and white-box
+  (source review) exploratory testing, guided by the OWASP API Security Top 10 rather than a formal DFD-first
+  walk, produced <strong>10 confirmed findings</strong>, 0 open candidates (JWT over-exposure; two flavors of
+  basket BOLA — a missing check and a bypassed one; mass user-table disclosure; unauthorized product-price
+  tampering; no login rate limiting; non-expiring JWTs; CORS/CSP gaps; exposed API schema; a <code>whoami</code>
+  field-allowlist gap). 3 OWASP categories (API4, API6, API7) deliberately time-boxed, not tested — reasoning
+  documented per-category in <code>THREAT_MODEL.md</code>. The DFD/trust-boundaries/Threat Dragon steps were
+  then formalized <em>afterward</em>, populated with these already-confirmed findings rather than hypothetical
+  ones. Full detail in <code>THREAT_MODEL.md</code>.</p>
 
   <div class="why" style="margin:8px 0 0;">
     <strong>Roadblocks and conceptual corrections made along the way</strong> (kept here so this checkpoint is
-    reviewable, not just a status line): confusing a "bounded flow" (an analyst's scoping choice — pick a
-    tractable slice of the app) with a "trust boundary" (a property of the system — where trust level actually
-    changes) because they share a word; assuming trust boundaries only separate privilege <em>levels</em>
-    (customer vs. admin) until the basket BOLA showed they also separate <em>identities</em> at the same level
-    (your data vs. a peer's); briefly misattributing the basket-tampering bug to the <code>clarinet</code>
-    parsing library, when the library behaved correctly and the bug was Juice Shop's own inconsistent use of
-    its output. None of these blocked progress — each got corrected in-session — but worth keeping visible
-    here rather than only in the polished final writeup, since "what went sideways and got fixed" is itself
-    useful interview material.
+    reviewable, not just a status line):
+    <ul style="margin:6px 0 0 18px;padding:0;">
+      <li style="margin-bottom:6px;">Confusing a "bounded flow" (an analyst's scoping choice — pick a
+      tractable slice of the app) with a "trust boundary" (a property of the system — where trust level
+      actually changes) because they share a word.</li>
+      <li style="margin-bottom:6px;">Assuming trust boundaries only separate privilege <em>levels</em>
+      (customer vs. admin) until the basket BOLA showed they also separate <em>identities</em> at the same
+      level (your data vs. a peer's).</li>
+      <li style="margin-bottom:6px;">Briefly misattributing the basket-tampering bug to the
+      <code>clarinet</code> parsing library, when the library behaved correctly and the bug was Juice Shop's
+      own inconsistent use of its output.</li>
+      <li style="margin-bottom:6px;"><strong>A real, diagnosed-from-first-principles tooling bug:</strong>
+      Juice Shop's own shipped <code>demo-target/threat-model.json</code> (authored by the maintainer in 2021)
+      opened in the current Threat Dragon app (v2.6.2) with a completely blank canvas — no error, despite the
+      file clearly containing 31 cells. Diagnosed by pulling real example files from Threat Dragon's own GitHub
+      repo and diffing the JSON structure field by field: the old file uses a pre-rewrite v1.x schema
+      (<code>diagramJson.cells</code> nested, no <code>version</code> field, <code>type: "tm.Process"</code>,
+      flow endpoints referencing element IDs directly) while the current app expects a newer schema
+      (<code>cells</code> flat, <code>version</code> present, <code>shape: "process"</code>, flow endpoints
+      referencing <code>{cell, port}</code> pairs). A breaking format migration that fails silently rather than
+      erroring — a genuinely common class of bug with any tool that's changed its file format.</li>
+      <li style="margin-bottom:6px;"><strong>An engineering decision made, then reversed, honestly:</strong>
+      the first plan was to rebuild the diagram by hand in Threat Dragon's GUI, reasoning that a
+      script-generated file risked being silently broken the same way (new-format flows need per-element port
+      IDs normally only generated correctly by the GUI). After a long, slow manual click-through, this was
+      revised: the actual fix was to generate the file with a script <em>and validate it structurally</em>
+      (every flow's <code>source</code>/<code>target</code> cell+port reference checked programmatically to
+      resolve to a real port on a real node) before treating it as done — a stronger correctness guarantee than
+      a manually-clicked diagram, and far faster. The schema itself was confirmed from two sources: OWASP's own
+      GitHub repo demo files, cross-checked against a file the installed app itself produced when saving a new
+      blank model. Worth being candid that the first decision was the more cautious-<em>sounding</em> option,
+      not the actually-better one — reversing it rather than sunk-costing through the slower path is itself
+      worth describing honestly in an interview.</li>
+    </ul>
   </div>
 
-  <p style="margin:8px 0 0;"><strong>Not wasted effort:</strong> steps 2/3/6 remain, but formalizing them now
-  means populating a DFD and Threat Dragon file with <em>real, already-confirmed</em> findings rather than
-  hypothetical ones — arguably a better order than doing it the other way round.</p>
+  <div class="why" style="margin:10px 0 0;">
+    <strong>What a "threat model" actually is, and threats-by-element-type as a generative exercise:</strong> a
+    threat model is a DFD plus the STRIDE threats found against it — necessarily specific to one system's real
+    architecture, not a reusable template (Threat Dragon ships several unrelated demo models — Cryptocurrency
+    Wallet, IoT Device, CMS — purely as worked examples, not starting points for Juice Shop). Threats attach to
+    any DFD element type (actor, process, store, or flow), not only arrows; all 10 confirmed findings here
+    happen to sit on one flow (<code>Angular Frontend → Application Server</code>) because that's the one edge
+    every finding was actually discovered on — an honest reflection of testing scope, not a limitation of the
+    tool. Being able to name <em>untested</em> threats the same diagram invites at other element types (e.g.
+    "is <code>MarsDB NoSQL DB</code> exposed to open network access," "does <code>B2B API</code> enforce the
+    same checks as the customer path") using only the per-element-type STRIDE table — see
+    <code>STRIDE_METHODOLOGY.md</code>'s "Threats by DFD element type" section — is a stronger interview signal
+    than the diagram alone: it demonstrates the reasoning is generative, not pattern-matching against Juice
+    Shop's own pre-seeded, named challenges (visible directly in source as
+    <code>changeProductChallenge</code>, <code>passwordHashLeakChallenge</code>, etc.). Every real
+    pentest/assessment report carries a "scope and limitations" section for exactly this reason — a finished
+    report is never claimed as exhaustive coverage.
+  </div>
 </div>
 
 <h2><span class="phase-tag">Phase 3</span>Set up and run the scanners</h2>
