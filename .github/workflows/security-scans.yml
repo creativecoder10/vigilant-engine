@@ -1,0 +1,90 @@
+name: security-scans
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scan-and-ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out vigilant-engine (with demo-target submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node (for demo-target and npm-based tools)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install ingestion service dependencies
+        run: pip install -r ingestion/requirements.txt
+
+      - name: Start the ingestion API in the background
+        working-directory: ingestion
+        run: |
+          nohup uvicorn app.main:app --port 8000 > ingestion.log 2>&1 &
+          for i in $(seq 1 10); do
+            curl -sf http://localhost:8000/docs > /dev/null && exit 0
+            sleep 1
+          done
+          echo "ingestion API never came up:"; cat ingestion.log; exit 1
+
+      - name: Install demo-target dependencies
+        working-directory: demo-target
+        run: npm install
+
+      # ---------- Semgrep (SAST) ----------
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: semgrep scan --config auto --json --output semgrep-results.json demo-target/ || true
+
+      - name: Ingest Semgrep results
+        run: python3 .github/scripts/post_to_ingestion.py --source semgrep --file semgrep-results.json
+
+      # ---------- npm audit (SCA) ----------
+      - name: Run npm audit
+        working-directory: demo-target
+        run: npm audit --json > ../npm-audit-results.json || true
+
+      - name: Ingest npm audit results
+        run: python3 .github/scripts/post_to_ingestion.py --source npm_audit --file npm-audit-results.json
+
+      # ---------- Snyk (SCA) - only runs once SNYK_TOKEN is configured ----------
+      - name: Run Snyk
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        working-directory: demo-target
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          npm install -g snyk
+          snyk test --json > ../snyk-results.json || true
+
+      - name: Ingest Snyk results
+        if: ${{ secrets.SNYK_TOKEN != '' }}
+        run: python3 .github/scripts/post_to_ingestion.py --source snyk --file snyk-results.json
+
+      # ---------- gitleaks (secret scanning) ----------
+      - name: Install gitleaks
+        run: |
+          curl -sSL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          chmod +x gitleaks
+
+      - name: Run gitleaks against demo-target
+        run: ./gitleaks detect --source demo-target --report-format json --report-path gitleaks-results.json --no-banner || true
+
+      - name: Ingest gitleaks results
+        run: python3 .github/scripts/post_to_ingestion.py --source gitleaks --file gitleaks-results.json
+
+      - name: Show resulting stats
+        run: curl -s http://localhost:8000/stats | python3 -m json.tool
