@@ -52,6 +52,13 @@ for the target shape.
 ## Phase 3 — CI (`.github/workflows/`)
 
 - [ ] Workflow: run Semgrep, npm audit, Snyk, gitleaks against `demo-target/` source
+      — **written**, not yet run: `.github/workflows/security-scans.yml` +
+      `.github/scripts/post_to_ingestion.py`. Boots the ingestion API as a
+      background process inside the CI job itself (ephemeral SQLite, proves
+      the mechanism, no cross-run persistence yet — that's Phase 5). Snyk
+      step is gated behind `secrets.SNYK_TOKEN` so it no-ops until that
+      account exists. Needs a real push/PR to a GitHub remote to actually
+      verify it runs — nothing pushed yet, repo has no commits.
 - [ ] Workflow: boot Juice Shop in a container, run ZAP baseline scan against it
 - [ ] Workflow: build `ingestion/` and `dashboard/` images, run Trivy against them
 - [ ] Each job POSTs its raw output to the ingestion API's `/ingest`
@@ -75,3 +82,46 @@ for the target shape.
 - [ ] Run the full pipeline once end-to-end, seed real findings
 - [ ] Screenshot the dashboard for the README / portfolio writeup
 - [ ] Review `INTERVIEW_PREP.md` against what actually got built
+
+## Phase 7 — AWS deployment + IaC (stretch)
+
+Moves the Phase-5 `docker-compose` stack onto AWS, provisioned entirely
+through Terraform instead of clicking through the console. Also doubles as
+IaC/cloud-security portfolio material (Terraform + AWS misconfig scanning is
+a common AppSec-engineer ask).
+
+- [ ] `infra/` — new top-level Terraform root module
+  - [ ] `backend.tf` — remote state in an S3 bucket + DynamoDB lock table
+        (bootstrapped once by hand or a tiny separate bootstrap module,
+        since state can't store itself)
+  - [ ] `providers.tf` — AWS provider, pinned version
+  - [ ] `network.tf` — VPC, public/private subnets, IGW/NAT, security groups
+  - [ ] `ecr.tf` — one ECR repo per image (`ingestion`, `dashboard`)
+  - [ ] `rds.tf` — Postgres (replaces SQLite; `ingestion/app/db.py` already
+        anticipates this swap), private subnet only, no public endpoint
+  - [ ] `ecs.tf` — ECS cluster + Fargate task defs/services for `ingestion`
+        and `dashboard`, sized minimal (portfolio project, not prod scale)
+  - [ ] `alb.tf` — Application Load Balancer in front of both services,
+        path- or host-based routing
+  - [ ] `secrets.tf` — AWS Secrets Manager entries for `SNYK_TOKEN`, DB
+        credentials; tasks read via `secrets` block, never baked into images
+  - [ ] `iam.tf` — least-privilege task execution role + task role per
+        service, no wildcard `*` policies
+  - [ ] `logs.tf` — CloudWatch log groups for each ECS service
+  - [ ] `variables.tf` / `outputs.tf` — ALB DNS name, ECR repo URLs, etc.
+- [ ] `infra/README.md` — how to `terraform init/plan/apply`, what a
+      teardown (`terraform destroy`) costs to avoid, state-locking caveats
+- [ ] Extend `.github/workflows/` with a deploy job: build → push to ECR →
+      `terraform apply` (or `ecs update-service` for a faster image-only
+      path) — gated behind manual approval / a protected branch, not
+      auto-deploy on every push
+- [ ] Auth to AWS from CI via GitHub OIDC + an assumable IAM role — no
+      long-lived AWS access keys stored as repo secrets
+- [ ] IaC security scanning: run `tfsec` or `checkov` against `infra/` in CI,
+      same pattern as the app scanners in Phase 3 — findings normalized and
+      posted through the ingestion API if time allows, otherwise just a CI
+      gate
+- [ ] Decide before building: is this actually deployed and left running
+      (real AWS cost, real portfolio demo link) or built-and-torn-down
+      (`terraform apply` in a recorded walkthrough, then `destroy`) —
+      changes whether always-on RDS/Fargate costs are worth it
