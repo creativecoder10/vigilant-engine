@@ -1,0 +1,1007 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>AppSec Findings Pipeline</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F4F7FB;
+    --surface: #FFFFFF;
+    --ink: #16283D;
+    --ink-dim: #5A7793;
+    --line: #A9C2DA;
+    --accent: #D9720C;
+    --sev-critical: #E5484D;
+    --sev-high: #F2994A;
+    --sev-medium: #D9B23C;
+    --sev-low: #4E86C8;
+    --sev-info: #8FA1B4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A1E36;
+      --surface: #123054;
+      --ink: #E4EEF8;
+      --ink-dim: #86A4C2;
+      --line: #3E6A93;
+      --accent: #F0993B;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A1E36;
+    --surface: #123054;
+    --ink: #E4EEF8;
+    --ink-dim: #86A4C2;
+    --line: #3E6A93;
+    --accent: #F0993B;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--line) 22%, transparent) 0, color-mix(in srgb, var(--line) 22%, transparent) 1px, transparent 1px, transparent 32px),
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--line) 22%, transparent) 0, color-mix(in srgb, var(--line) 22%, transparent) 1px, transparent 1px, transparent 32px);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    padding: 40px 48px 32px;
+  }
+
+  .sheet {
+    max-width: 1220px;
+    margin: 0 auto;
+  }
+
+  .sheet-head {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  h1 {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 30px;
+    font-weight: 600;
+    margin: 6px 0 8px;
+    text-wrap: balance;
+  }
+
+  .dek {
+    font-size: 14.5px;
+    color: var(--ink-dim);
+    max-width: 66ch;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .stamp {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .diagram {
+    margin: 0 0 30px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 18px 18px 14px;
+  }
+
+  .diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  .node-box {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .node-box.accent {
+    stroke: var(--accent);
+  }
+
+  .node-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--ink);
+    font-weight: 600;
+  }
+
+  .node-sub {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--ink-dim);
+  }
+
+  .row-tool {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--ink);
+    font-weight: 600;
+  }
+
+  .row-cat {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--accent);
+  }
+
+  .row-rule {
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .edge {
+    fill: none;
+    stroke: var(--ink-dim);
+    stroke-width: 1.4;
+  }
+
+  .edge.pull {
+    stroke-dasharray: 4 3;
+  }
+
+  .edge-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--ink-dim);
+  }
+
+  .edge-label.pull {
+    fill: var(--accent);
+  }
+
+  .db-shape {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  figcaption {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-top: 12px;
+    max-width: 82ch;
+    line-height: 1.5;
+  }
+
+  h2.section {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 0 0 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-bottom: 30px;
+  }
+
+  table th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0 12px 8px 0;
+    border-bottom: 1.5px solid var(--ink);
+  }
+
+  table td {
+    padding: 10px 12px 10px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    line-height: 1.45;
+  }
+
+  table td.item {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  table td.component {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  table td.spec {
+    color: var(--ink-dim);
+  }
+
+  table td.cat {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    white-space: nowrap;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+  }
+
+  .legend span.sw {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
+    border-radius: 1px;
+    vertical-align: middle;
+  }
+
+  .legend .key {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend .key svg {
+    display: block;
+  }
+
+  @media (max-width: 720px) {
+    body { padding: 24px 16px; }
+    .stamp { text-align: left; }
+  }
+
+  .pagenav {
+    max-width: 1220px;
+    margin: 0 auto 22px;
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pagenav a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+  }
+
+  .pagenav a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .sheet + .sheet {
+    margin-top: 44px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--line);
+  }
+
+  .step-box {
+    fill: var(--surface);
+    stroke: var(--line);
+    stroke-width: 1.5;
+  }
+
+  .step-box.hot { stroke: var(--accent); }
+  .step-box.ghost { stroke-dasharray: 4 3; opacity: 0.75; }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--accent);
+    font-weight: 600;
+  }
+
+  .step-title {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    fill: var(--ink);
+    font-weight: 600;
+  }
+
+  .step-sub {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    fill: var(--ink-dim);
+  }
+
+  .code-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    line-height: 1.55;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+
+  .code-panel .k { color: var(--ink-dim); }
+  .code-panel .hl { color: var(--accent); }
+
+  .norm-example {
+    display: grid;
+    grid-template-columns: 1fr 34px 1fr;
+    gap: 4px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+
+  .norm-arrow {
+    text-align: center;
+    font-size: 20px;
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  .norm-label {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 6px;
+  }
+
+  .callout {
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    margin-bottom: 24px;
+  }
+
+  .callout strong { color: var(--accent); }
+
+  @media print {
+    .pagenav { display: none; }
+    .sheet { page-break-after: always; }
+    .sheet:last-of-type { page-break-after: auto; }
+  }
+</style>
+
+<nav class="pagenav">
+  <a href="#page-1">1 &middot; System architecture</a>
+  <a href="#page-2">2 &middot; Pipeline walkthrough</a>
+  <a href="#page-3">3 &middot; Normalization detail</a>
+</nav>
+
+<div class="sheet" id="page-1">
+  <header class="sheet-head">
+    <div class="title-block">
+      <div class="eyebrow">SYSTEM ARCHITECTURE &middot; PAGE 1 OF 3</div>
+      <h1>AppSec Findings Pipeline</h1>
+      <p class="dek">How SAST, SCA, DAST, secret, and container scanner output all become one normalized, queryable findings database — and the dashboard that reads it.</p>
+    </div>
+    <div class="stamp">DWG vigilant-engine / architecture<br>REV 04 &middot; 2026-09-08</div>
+  </header>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 1280 620" role="img" aria-label="Diagram: OWASP Juice Shop is the demo target. Five CI scanners — Semgrep (SAST), npm audit (SCA), Snyk (SCA), OWASP ZAP (DAST), and gitleaks (secret scanning) — run against it on push and pull request. Separately, Trivy scans the built ingestion and dashboard Docker images. All six tools POST raw JSON to a FastAPI ingestion service, which normalizes and deduplicates results into a findings.db SQLite database. A Next.js dashboard reads findings and stats from that same API by pulling with GET requests, shown as a dashed arrow to distinguish it from the solid push arrows.">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,5 0,10" style="fill: var(--ink-dim);"></polygon>
+        </marker>
+        <marker id="arrow-pull" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,5 0,10" style="fill: var(--accent);"></polygon>
+        </marker>
+      </defs>
+
+      <!-- demo-target -->
+      <rect class="node-box" x="24" y="250" width="176" height="112" rx="3"></rect>
+      <text class="node-label" x="112" y="284" font-size="13.5" text-anchor="middle">demo-target</text>
+      <text class="node-sub" x="112" y="302" font-size="10.5" text-anchor="middle">OWASP Juice Shop</text>
+      <text class="node-sub" x="112" y="317" font-size="10.5" text-anchor="middle">Node.js + Angular</text>
+      <text class="node-sub" x="112" y="332" font-size="10.5" text-anchor="middle">run via Docker</text>
+
+      <!-- target -> scanner panel (not a trigger — the GH Actions push/PR event is; this arrow is "scanner reads this") -->
+      <path class="edge" d="M200,290 C 222,260 228,235 248,225" marker-end="url(#arrow)"></path>
+      <text class="edge-label" x="196" y="205" font-size="10" text-anchor="middle">scanned on push / PR</text>
+
+      <!-- Panel A: CI scanners -->
+      <rect class="node-box" x="250" y="34" width="228" height="394" rx="3"></rect>
+      <text class="node-label" x="364" y="58" font-size="12" text-anchor="middle">CI scanners</text>
+      <line x1="264" y1="70" x2="464" y2="70" class="row-rule"></line>
+
+      <text class="row-tool" x="264" y="98" font-size="12.5">Semgrep</text>
+      <text class="row-cat" x="464" y="98" font-size="10.5" text-anchor="end">SAST</text>
+      <line x1="264" y1="114" x2="464" y2="114" class="row-rule"></line>
+
+      <text class="row-tool" x="264" y="142" font-size="12.5">npm audit</text>
+      <text class="row-cat" x="464" y="142" font-size="10.5" text-anchor="end">SCA</text>
+      <line x1="264" y1="158" x2="464" y2="158" class="row-rule"></line>
+
+      <text class="row-tool" x="264" y="186" font-size="12.5">Snyk</text>
+      <text class="row-cat" x="464" y="186" font-size="10.5" text-anchor="end">SCA</text>
+      <line x1="264" y1="202" x2="464" y2="202" class="row-rule"></line>
+
+      <text class="row-tool" x="264" y="230" font-size="12.5">OWASP ZAP</text>
+      <text class="row-cat" x="464" y="230" font-size="10.5" text-anchor="end">DAST</text>
+      <line x1="264" y1="246" x2="464" y2="246" class="row-rule"></line>
+
+      <text class="row-tool" x="264" y="274" font-size="12.5">gitleaks</text>
+      <text class="row-cat" x="464" y="274" font-size="10.5" text-anchor="end">SECRETS</text>
+
+      <text class="node-sub" x="364" y="410" font-size="9.5" text-anchor="middle">runs against source + running instance</text>
+
+      <!-- Panel B: image scan -->
+      <rect class="node-box" x="250" y="452" width="228" height="98" rx="3"></rect>
+      <text class="node-label" x="364" y="478" font-size="12.5" text-anchor="middle">Trivy</text>
+      <text class="row-cat" x="364" y="494" font-size="10" text-anchor="middle">CONTAINER SCAN</text>
+      <text class="node-sub" x="364" y="514" font-size="10" text-anchor="middle">ingestion/ + dashboard/</text>
+      <text class="node-sub" x="364" y="528" font-size="10" text-anchor="middle">built Docker images</text>
+
+      <!-- ingestion API -->
+      <rect class="node-box accent" x="560" y="150" width="220" height="260" rx="3"></rect>
+      <text class="node-label" x="670" y="182" font-size="14" text-anchor="middle">ingestion API</text>
+      <text class="node-sub" x="670" y="200" font-size="10.5" text-anchor="middle">FastAPI + SQLModel</text>
+      <line x1="580" y1="212" x2="760" y2="212" class="row-rule"></line>
+      <text class="node-sub" x="670" y="234" font-size="10.5" text-anchor="middle">POST /ingest</text>
+      <text class="node-sub" x="670" y="250" font-size="10.5" text-anchor="middle">parse → normalize</text>
+      <text class="node-sub" x="670" y="266" font-size="10.5" text-anchor="middle">→ Finding schema</text>
+      <text class="node-sub" x="670" y="288" font-size="10.5" text-anchor="middle">GET /findings</text>
+      <text class="node-sub" x="670" y="304" font-size="10.5" text-anchor="middle">GET /stats</text>
+
+      <!-- Panel A -> API: scanner PUSHES via POST — a real trigger, arrow direction matches caller -->
+      <path class="edge" d="M478,220 L 558,232" marker-end="url(#arrow)"></path>
+      <text class="edge-label" x="486" y="212" font-size="10">POST raw JSON &times;5 (push)</text>
+
+      <!-- Panel B -> API: same, Trivy pushes -->
+      <path class="edge" d="M478,500 C 540,500 540,340 558,320" marker-end="url(#arrow)"></path>
+      <text class="edge-label" x="486" y="450" font-size="10">POST raw JSON (push)</text>
+
+      <!-- API -> DB -->
+      <path class="edge" d="M780,238 L 828,238" marker-end="url(#arrow)"></path>
+      <path class="edge" d="M828,290 L 780,290" marker-end="url(#arrow)"></path>
+      <text class="edge-label" x="784" y="230" font-size="9.5">upsert by</text>
+      <text class="edge-label" x="784" y="305" font-size="9.5">query</text>
+
+      <!-- DB cylinder -->
+      <path class="db-shape" d="M 828,194 C 828,186 880,186 880,194 L 880,330 C 880,338 828,338 828,330 Z"></path>
+      <ellipse class="db-shape" cx="854" cy="194" rx="26" ry="8"></ellipse>
+      <text class="node-label" x="854" y="370" font-size="12" text-anchor="middle">findings.db</text>
+      <text class="node-sub" x="854" y="386" font-size="10" text-anchor="middle">SQLite</text>
+      <text class="node-sub" x="854" y="400" font-size="10" text-anchor="middle">(→ Postgres later)</text>
+
+      <!-- API -> dashboard: drawn dashed/accent — data flows this way, but the DASHBOARD is the caller (GET = pull), opposite of the push arrows above -->
+      <path class="edge pull" d="M780,190 C 900,190 900,220 968,232" marker-end="url(#arrow-pull)"></path>
+      <text class="edge-label pull" x="800" y="172" font-size="10">GET /findings</text>
+      <text class="edge-label pull" x="800" y="184" font-size="10">GET /stats — pulled by dashboard</text>
+
+      <!-- dashboard -->
+      <rect class="node-box" x="970" y="150" width="260" height="260" rx="3"></rect>
+      <text class="node-label" x="1100" y="182" font-size="14" text-anchor="middle">dashboard</text>
+      <text class="node-sub" x="1100" y="200" font-size="10.5" text-anchor="middle">Next.js (App Router)</text>
+
+      <!-- mini severity bar chart glyph -->
+      <g transform="translate(1039,232)">
+        <rect x="0" y="60" width="18" height="30" style="fill: var(--sev-critical);"></rect>
+        <rect x="26" y="42" width="18" height="48" style="fill: var(--sev-high);"></rect>
+        <rect x="52" y="20" width="18" height="70" style="fill: var(--sev-medium);"></rect>
+        <rect x="78" y="50" width="18" height="40" style="fill: var(--sev-low);"></rect>
+        <rect x="104" y="70" width="18" height="20" style="fill: var(--sev-info);"></rect>
+        <line x1="0" y1="90" x2="122" y2="90" style="stroke: var(--line); stroke-width: 1;"></line>
+      </g>
+      <text class="node-sub" x="1100" y="352" font-size="10" text-anchor="middle">severity · open vs fixed</text>
+      <text class="node-sub" x="1100" y="366" font-size="10" text-anchor="middle">by tool / category</text>
+
+      <!-- arrow-style key -->
+      <g transform="translate(24,584)">
+        <line x1="0" y1="0" x2="34" y2="0" class="edge" marker-end="url(#arrow)"></line>
+        <text class="edge-label" x="42" y="4" font-size="10">solid = push / calls (real trigger)</text>
+        <line x1="330" y1="0" x2="364" y2="0" class="edge pull" marker-end="url(#arrow-pull)"></line>
+        <text class="edge-label pull" x="372" y="4" font-size="10">dashed = data flow only — receiver actually pulls</text>
+      </g>
+    </svg>
+  </figure>
+
+  <div class="legend">
+    <span><span class="sw" style="background: var(--sev-critical);"></span>critical</span>
+    <span><span class="sw" style="background: var(--sev-high);"></span>high</span>
+    <span><span class="sw" style="background: var(--sev-medium);"></span>medium</span>
+    <span><span class="sw" style="background: var(--sev-low);"></span>low</span>
+    <span><span class="sw" style="background: var(--sev-info);"></span>info</span>
+  </div>
+
+  <figcaption style="margin-bottom: 30px;">The dashboard never talks to the scanners or the database directly — only to the ingestion API's read endpoints. All six tools' output is collapsed into one <code>Finding</code> shape before it's stored, deduplicated by <code>dedupe_hash</code> so repeat scans update <code>last_seen</code> instead of creating duplicate rows.</figcaption>
+
+  <figcaption style="margin-bottom: 30px;">Not every arrow means the same thing. Solid arrows (scanner → API, API → DB) are pushes — a real call that triggers the receiving code to run (a scanner's <code>POST /ingest</code> executes the FastAPI handler; the API's write executes a DB statement). The dashed arrow (API → dashboard) shows data flowing that direction, but the dashboard is actually the one calling — it issues the <code>GET</code>, pulling from the API on its own schedule. Same diagram convention, opposite control direction: worth reading arrows as "who calls whom," not just "which way the data eventually ends up."</figcaption>
+
+  <h2 class="section">Scanner coverage</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Tool</th>
+        <th>What it tests</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="cat">SAST</td>
+        <td class="component">Semgrep</td>
+        <td class="spec">Juice Shop's own source code, for unsafe patterns.</td>
+      </tr>
+      <tr>
+        <td class="cat">SCA</td>
+        <td class="component">npm audit</td>
+        <td class="spec">Juice Shop's package.json dependencies, against the GitHub Advisory DB.</td>
+      </tr>
+      <tr>
+        <td class="cat">SCA</td>
+        <td class="component">Snyk</td>
+        <td class="spec">Same dependencies, against Snyk's broader vuln DB plus remediation advice.</td>
+      </tr>
+      <tr>
+        <td class="cat">DAST</td>
+        <td class="component">OWASP ZAP</td>
+        <td class="spec">The running Juice Shop instance, black-box, like an external attacker.</td>
+      </tr>
+      <tr>
+        <td class="cat">SECRETS</td>
+        <td class="component">gitleaks</td>
+        <td class="spec">Git history, for committed keys/tokens/passwords.</td>
+      </tr>
+      <tr>
+        <td class="cat">CONTAINER</td>
+        <td class="component">Trivy</td>
+        <td class="spec">The built ingestion/ and dashboard/ Docker images, for vulnerable base images/packages.</td>
+      </tr>
+    </tbody>
+  </table>
+  <figcaption style="margin-bottom: 30px;">IaC scanning (Checkov / tfsec) is intentionally out of scope for now — there's no Terraform/CloudFormation/K8s in this project yet. Worth adding if this is ever deployed to real cloud infrastructure rather than run locally via <code>docker compose</code>.</figcaption>
+
+  <h2 class="section">Bill of materials</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Component</th>
+        <th>Spec</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="item">01</td>
+        <td class="component">demo-target/</td>
+        <td class="spec">OWASP Juice Shop, run via its official Docker image — a well-known, intentionally-vulnerable app (SQLi, XSS, broken auth, vulnerable deps) with an active challenge tracker.</td>
+      </tr>
+      <tr>
+        <td class="item">02</td>
+        <td class="component">.github/workflows/</td>
+        <td class="spec">Runs Semgrep, npm audit, Snyk, and gitleaks against the source; runs Juice Shop in a container and points ZAP's baseline scan at it; runs Trivy against the built ingestion/dashboard images. Posts every tool's raw output to the ingestion API.</td>
+      </tr>
+      <tr>
+        <td class="item">03</td>
+        <td class="component">ingestion/</td>
+        <td class="spec">FastAPI + SQLModel service. Per-scanner parsers map raw output onto the shared <em>Finding</em> schema, dedupe by hash, and upsert into SQLite.</td>
+      </tr>
+      <tr>
+        <td class="item">04</td>
+        <td class="component">dashboard/</td>
+        <td class="spec">Next.js app reading the ingestion API's <em>/findings</em> and <em>/stats</em> endpoints — severity breakdown, open vs. fixed, trend over time, by tool/category.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="sheet" id="page-2">
+  <header class="sheet-head">
+    <div class="title-block">
+      <div class="eyebrow">SYSTEM ARCHITECTURE &middot; PAGE 2 OF 3</div>
+      <h1>Pipeline Walkthrough — One CI Run, Step by Step</h1>
+      <p class="dek">What actually happens inside <code>security-scans.yml</code> from the triggering event to a stored, queryable row — the mechanics behind the Page 1 diagram.</p>
+    </div>
+    <div class="stamp">DWG vigilant-engine / architecture<br>REV 04 &middot; 2026-09-08</div>
+  </header>
+
+  <figure class="diagram">
+    <svg viewBox="0 0 1280 440" role="img" aria-label="Diagram: nine sequential steps of one CI run. Row one: 1 trigger (push or pull request on vigilant-engine's own repo, not the juice-shop submodule), 2 checkout with submodules true, 3 environment setup (Python and Node), 4 ingestion API started in the background against a fresh empty SQLite file, 5 install demo-target's npm dependencies. The flow wraps down to row two: 6 run each scanner against demo-target producing raw JSON, with steps ending in or-true, 7 post_to_ingestion.py posts each raw JSON file to the ingest endpoint, 8 the ingestion API normalizes each tool's shape into one Finding schema via a per-tool parser, 9 the job ends by calling the stats endpoint as a smoke test. A tenth, dashed, ghost box shows the dashboard, which does not exist in this run yet and will later pull from a persistently hosted version of the same API.">
+      <defs>
+        <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,5 0,10" style="fill: var(--ink-dim);"></polygon>
+        </marker>
+        <marker id="arrow2-pull" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <polygon points="0,0 10,5 0,10" style="fill: var(--accent);"></polygon>
+        </marker>
+      </defs>
+
+      <!-- Row 1 -->
+      <g>
+        <rect class="step-box" x="32" y="30" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="46" y="50" font-size="11">01</text>
+        <text class="step-title" x="46" y="72" font-size="12">TRIGGER</text>
+        <text class="step-sub" x="46" y="90" font-size="10">push / PR events on</text>
+        <text class="step-sub" x="46" y="104" font-size="10">vigilant-engine repo —</text>
+        <text class="step-sub" x="46" y="118" font-size="10">NOT juice-shop commits</text>
+        <text class="step-sub" x="46" y="132" font-size="10">(submodule = pinned ptr)</text>
+      </g>
+
+      <path class="edge" d="M248,95 L280,95" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box" x="282" y="30" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="296" y="50" font-size="11">02</text>
+        <text class="step-title" x="296" y="72" font-size="12">CHECKOUT</text>
+        <text class="step-sub" x="296" y="90" font-size="10">actions/checkout with</text>
+        <text class="step-sub" x="296" y="104" font-size="10">submodules: true —</text>
+        <text class="step-sub" x="296" y="118" font-size="10">else demo-target/ checks</text>
+        <text class="step-sub" x="296" y="132" font-size="10">out empty</text>
+      </g>
+
+      <path class="edge" d="M498,95 L530,95" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box" x="532" y="30" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="546" y="50" font-size="11">03</text>
+        <text class="step-title" x="546" y="72" font-size="12">ENV SETUP</text>
+        <text class="step-sub" x="546" y="90" font-size="10">Python 3.11 + Node 22</text>
+        <text class="step-sub" x="546" y="104" font-size="10">py → ingestion service</text>
+        <text class="step-sub" x="546" y="118" font-size="10">+ scanner scripts</text>
+        <text class="step-sub" x="546" y="132" font-size="10">node → Juice Shop / npm</text>
+      </g>
+
+      <path class="edge" d="M748,95 L780,95" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box hot" x="782" y="30" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="796" y="50" font-size="11">04</text>
+        <text class="step-title" x="796" y="72" font-size="12">INGESTION API UP</text>
+        <text class="step-sub" x="796" y="90" font-size="10">uvicorn, background proc,</text>
+        <text class="step-sub" x="796" y="104" font-size="10">brand-new empty SQLite</text>
+        <text class="step-sub" x="796" y="118" font-size="10">file — dies with the CI</text>
+        <text class="step-sub" x="796" y="132" font-size="10">job, nothing persists</text>
+      </g>
+
+      <path class="edge" d="M998,95 L1030,95" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box" x="1032" y="30" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="1046" y="50" font-size="11">05</text>
+        <text class="step-title" x="1046" y="72" font-size="12">INSTALL TARGET DEPS</text>
+        <text class="step-sub" x="1046" y="90" font-size="10">npm install inside</text>
+        <text class="step-sub" x="1046" y="104" font-size="10">demo-target/ — lockfile</text>
+        <text class="step-sub" x="1046" y="118" font-size="10">for SCA, real code for</text>
+        <text class="step-sub" x="1046" y="132" font-size="10">Semgrep to scan</text>
+      </g>
+
+      <!-- wrap connector: box5 bottom -> box6 top -->
+      <path class="edge" d="M1140,160 C1140,205 140,205 140,278" marker-end="url(#arrow2)"></path>
+      <text class="edge-label" x="640" y="200" font-size="10" text-anchor="middle">continues in the same job →</text>
+
+      <!-- Row 2 -->
+      <g>
+        <rect class="step-box" x="32" y="280" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="46" y="300" font-size="11">06</text>
+        <text class="step-title" x="46" y="322" font-size="12">RUN SCANNERS</text>
+        <text class="step-sub" x="46" y="340" font-size="10">Semgrep / npm audit /</text>
+        <text class="step-sub" x="46" y="354" font-size="10">Snyk / gitleaks → raw JSON</text>
+        <text class="step-sub" x="46" y="368" font-size="10">steps end in || true —</text>
+        <text class="step-sub" x="46" y="382" font-size="10">findings ≠ CI failure</text>
+      </g>
+
+      <path class="edge" d="M248,345 L280,345" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box" x="282" y="280" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="296" y="300" font-size="11">07</text>
+        <text class="step-title" x="296" y="322" font-size="12">POST RESULTS</text>
+        <text class="step-sub" x="296" y="340" font-size="10">post_to_ingestion.py —</text>
+        <text class="step-sub" x="296" y="354" font-size="10">one shared script, called</text>
+        <text class="step-sub" x="296" y="368" font-size="10">once per --source/--file,</text>
+        <text class="step-sub" x="296" y="382" font-size="10">not hand-rolled curl x4</text>
+      </g>
+
+      <path class="edge" d="M498,345 L530,345" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box hot" x="532" y="280" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="546" y="300" font-size="11">08</text>
+        <text class="step-title" x="546" y="322" font-size="12">NORMALIZE</text>
+        <text class="step-sub" x="546" y="340" font-size="10">POST /ingest handler runs</text>
+        <text class="step-sub" x="546" y="354" font-size="10">a per-tool parser → one</text>
+        <text class="step-sub" x="546" y="368" font-size="10">common Finding schema</text>
+        <text class="step-sub" x="546" y="382" font-size="10">— detail on Page 3 →</text>
+      </g>
+
+      <path class="edge" d="M748,345 L780,345" marker-end="url(#arrow2)"></path>
+
+      <g>
+        <rect class="step-box" x="782" y="280" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="796" y="300" font-size="11">09</text>
+        <text class="step-title" x="796" y="322" font-size="12">STORE + SMOKE TEST</text>
+        <text class="step-sub" x="796" y="340" font-size="10">upserted by dedupe_hash</text>
+        <text class="step-sub" x="796" y="354" font-size="10">into SQLite; job ends by</text>
+        <text class="step-sub" x="796" y="368" font-size="10">printing GET /stats — proof</text>
+        <text class="step-sub" x="796" y="382" font-size="10">the loop worked, once</text>
+      </g>
+
+      <path class="edge pull" d="M998,345 L1030,345" marker-end="url(#arrow2-pull)"></path>
+
+      <g>
+        <rect class="step-box ghost" x="1032" y="280" width="216" height="130" rx="3"></rect>
+        <text class="step-num" x="1046" y="300" font-size="11">·&middot;&middot;</text>
+        <text class="step-title" x="1046" y="322" font-size="12">DASHBOARD (LATER)</text>
+        <text class="step-sub" x="1046" y="340" font-size="10">not built yet — will</text>
+        <text class="step-sub" x="1046" y="354" font-size="10">GET /findings + /stats</text>
+        <text class="step-sub" x="1046" y="368" font-size="10">from a persistently</text>
+        <text class="step-sub" x="1046" y="382" font-size="10">hosted version of this API</text>
+      </g>
+
+      <g transform="translate(32,420)">
+        <line x1="0" y1="0" x2="34" y2="0" class="edge" marker-end="url(#arrow2)"></line>
+        <text class="edge-label" x="42" y="4" font-size="10">solid = happens in this CI run</text>
+        <line x1="330" y1="0" x2="364" y2="0" class="edge pull" marker-end="url(#arrow2-pull)"></line>
+        <text class="edge-label pull" x="372" y="4" font-size="10">dashed = future / not part of this run</text>
+      </g>
+    </svg>
+  </figure>
+
+  <div class="callout"><strong>Not a per-juice-shop-commit trigger.</strong> <code>demo-target/</code> is a git submodule — a pinned pointer to one upstream juice-shop commit, not a live copy. Juice Shop's own repo can advance indefinitely without this workflow ever noticing. It only re-runs when <em>vigilant-engine's own repo</em> changes — including the commit that deliberately bumps the submodule pointer.</div>
+
+  <div class="callout"><strong>The database is thrown away every single run.</strong> Step 4 starts the ingestion API fresh, backed by an empty SQLite file that exists only for that job. Nothing persists once the job ends — every run starts from zero findings, so there's no trend data yet. That's a deliberate, named simplification: this phase proves the scan → normalize → store → query loop works; pointing it at a permanently hosted API so findings actually accumulate is later (packaging/deployment) work.</div>
+
+  <h2 class="section">Step-by-step detail</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Step</th>
+        <th>What happens</th>
+        <th>Worth knowing</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="item">01</td>
+        <td class="component">Trigger</td>
+        <td class="spec">GitHub Actions fires on <code>push</code> to <code>main</code> or any <code>pull_request</code>, both on vigilant-engine's own repo.</td>
+      </tr>
+      <tr>
+        <td class="item">02</td>
+        <td class="component">Checkout</td>
+        <td class="spec"><code>actions/checkout</code> with <code>submodules: true</code> — without it, only the submodule's commit pointer comes down, not its files.</td>
+      </tr>
+      <tr>
+        <td class="item">03</td>
+        <td class="component">Env setup</td>
+        <td class="spec">Python 3.11 for the ingestion service and scanner scripts; Node 22 because Juice Shop is a Node app and npm-based scanners need it.</td>
+      </tr>
+      <tr>
+        <td class="item">04</td>
+        <td class="component">Ingestion API up</td>
+        <td class="spec"><code>uvicorn</code> started as a background process, polled on <code>/docs</code> until ready, backed by a fresh empty SQLite file for this run only.</td>
+      </tr>
+      <tr>
+        <td class="item">05</td>
+        <td class="component">Target deps</td>
+        <td class="spec"><code>npm install</code> inside <code>demo-target/</code> so scanners have real code and a resolved dependency tree to check.</td>
+      </tr>
+      <tr>
+        <td class="item">06</td>
+        <td class="component">Run scanners</td>
+        <td class="spec">Each tool writes its own raw JSON file. Steps end in <code>|| true</code> since a scanner exiting non-zero usually means "found something," not "crashed" — the goal here is ingestion, not gating the build.</td>
+      </tr>
+      <tr>
+        <td class="item">07</td>
+        <td class="component">Post results</td>
+        <td class="spec"><code>post_to_ingestion.py</code> POSTs each raw JSON file to <code>/ingest</code> — one shared script, one call per tool.</td>
+      </tr>
+      <tr>
+        <td class="item">08</td>
+        <td class="component">Normalize</td>
+        <td class="spec">The API's <code>/ingest</code> handler runs a per-tool parser that maps that tool's own JSON shape into one common <em>Finding</em> schema — see Page 3.</td>
+      </tr>
+      <tr>
+        <td class="item">09</td>
+        <td class="component">Store + smoke test</td>
+        <td class="spec">Normalized rows are upserted into SQLite by <code>dedupe_hash</code>. The job's last step prints <code>GET /stats</code>, proving the loop worked — it is not the dashboard.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section">Aside — FastAPI/uvicorn vs. Express/Node</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Node.js + Express</th>
+        <th>Python + FastAPI</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="cat">Routes &amp; logic</td>
+        <td class="spec">Express — <code>app.get('/findings', handler)</code>. Defines <em>what</em> happens per request.</td>
+        <td class="spec">FastAPI — <code>@app.get("/findings")</code>. Same job, same shape.</td>
+      </tr>
+      <tr>
+        <td class="cat">Socket + HTTP parsing</td>
+        <td class="spec">Node's own <code>http</code> module (built into the runtime, on top of libuv). Express is a thin layer over it, not a replacement for it.</td>
+        <td class="spec">uvicorn — a separate ASGI server process. The Python interpreter has no built-in production HTTP server; ASGI exists so any compliant server (uvicorn, Hypercorn, Daphne) can drive any compliant app (FastAPI, Starlette).</td>
+      </tr>
+      <tr>
+        <td class="cat">How you start it</td>
+        <td class="spec">One process, one command: <code>node server.js</code>. Express's <code>app.listen(3000)</code> is just a convenience wrapper around Node's own <code>http.createServer(app).listen(3000)</code> — the listening call lives inside your own file.</td>
+        <td class="spec">Two separate things: your file builds the <code>app</code> object (line 34 of <code>app/main.py</code>), but nothing in that file opens a socket. A separate command drives it: <code>uvicorn app.main:app --port 8000</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="callout"><strong>The one-line reason.</strong> Node was built from the ground up as a runtime for non-blocking network I/O — an HTTP-capable socket server ships inside the language runtime itself, so <code>app.listen()</code> "just works" from inside your script. Python's interpreter carries no such thing; that gap is exactly why the ASGI spec — and a separate program to implement it, uvicorn — had to exist as its own piece.</div>
+</div>
+
+<div class="sheet" id="page-3">
+  <header class="sheet-head">
+    <div class="title-block">
+      <div class="eyebrow">SYSTEM ARCHITECTURE &middot; PAGE 3 OF 3</div>
+      <h1>Normalization — Six Shapes, One Schema</h1>
+      <p class="dek">Three scanners, three completely different JSON shapes, mapped by their own <code>app/parsers/&lt;tool&gt;.py</code> module onto the same <code>Finding</code> row before anything is stored.</p>
+    </div>
+    <div class="stamp">DWG vigilant-engine / architecture<br>REV 04 &middot; 2026-09-08</div>
+  </header>
+
+  <h2 class="section">Example A — Semgrep (SAST)</h2>
+  <div class="norm-example">
+    <div>
+      <div class="norm-label">RAW &middot; one entry in semgrep --json's "results"</div>
+      <pre class="code-panel">{
+  "check_id": "python.lang.security.
+               audit.eval",
+  "path": "routes/login.py",
+  "start": { "line": 42 },
+  "extra": {
+    "message": "Detected eval() with
+                 user input",
+    "severity": "ERROR"
+  }
+}</pre>
+    </div>
+    <div class="norm-arrow">&rarr;</div>
+    <div>
+      <div class="norm-label">NORMALIZED &middot; Finding row</div>
+      <pre class="code-panel">source      = semgrep
+rule_id     = python.lang.security.
+              audit.eval
+title       = "Detected eval() with
+               user input"
+severity    = HIGH     # ERROR &rarr; HIGH
+file_path   = routes/login.py
+line_number = 42
+dedupe key  = rule_id + file_path
+              + line_number</pre>
+    </div>
+  </div>
+
+  <h2 class="section">Example B — gitleaks (secret scanning)</h2>
+  <div class="norm-example">
+    <div>
+      <div class="norm-label">RAW &middot; one element of gitleaks' JSON array</div>
+      <pre class="code-panel">{
+  "RuleID": "aws-access-token",
+  "File": "config/legacy.env",
+  "StartLine": 7,
+  "Commit": "a1b2c3d",
+  "Description": "AWS Access Token"
+}</pre>
+    </div>
+    <div class="norm-arrow">&rarr;</div>
+    <div>
+      <div class="norm-label">NORMALIZED &middot; Finding row</div>
+      <pre class="code-panel">source      = gitleaks
+rule_id     = aws-access-token
+title       = "AWS Access Token"
+severity    = CRITICAL  # gitleaks has
+              no severity field — every
+              hit is fixed CRITICAL
+file_path   = config/legacy.env
+line_number = 7
+commit_sha  = a1b2c3d
+dedupe key  = rule_id + file_path
+              + line_number</pre>
+    </div>
+  </div>
+
+  <h2 class="section">Example C — npm audit (SCA)</h2>
+  <div class="norm-example">
+    <div>
+      <div class="norm-label">RAW &middot; vulnerabilities["lodash"]</div>
+      <pre class="code-panel">"lodash": {
+  "severity": "high",
+  "range": "&lt;4.17.21",
+  "fixAvailable": true,
+  "via": [{
+    "source": 1523,
+    "title": "Prototype Pollution",
+    "url": "https://github.com/
+            advisories/..."
+  }]
+}</pre>
+    </div>
+    <div class="norm-arrow">&rarr;</div>
+    <div>
+      <div class="norm-label">NORMALIZED &middot; Finding row</div>
+      <pre class="code-panel">source          = npm_audit
+rule_id         = 1523
+title           = "Prototype Pollution"
+severity        = HIGH
+package_name    = lodash
+package_version = &lt;4.17.21
+file_path       = null   # SCA is
+                  package-level, not
+                  line-level
+dedupe key      = rule_id
+                  + package_name</pre>
+    </div>
+  </div>
+
+  <div class="callout"><strong>The dedupe_hash formula, exactly.</strong> <code>compute_dedupe_hash(*parts)</code> joins whatever identifying parts a parser passes it with <code>"|"</code> and SHA-256s the result. It never includes a timestamp or scan-run ID — only fields that identify <em>what</em> the finding is. So the same real issue found on run 1 and run 50 hashes identically, and <code>POST /ingest</code> upserts the existing row (bumping <code>last_seen</code>) instead of inserting a duplicate. Note the SCA case: npm audit hashes on <code>rule_id + package_name</code> only, with no file/line, because two different packages can share one advisory and a single package has no line number to point to.</div>
+
+  <div class="callout"><strong>Reopening a "fixed" finding.</strong> If a finding's <code>dedupe_hash</code> already exists in the table with <code>status = FIXED</code>, and a later scan reports that exact same hash again, the upsert flips it back to <code>OPEN</code> before bumping <code>last_seen</code> — the reasoning being that whatever fix closed it clearly regressed if the scanner is seeing it again.</div>
+
+  <h2 class="section">Field mapping cheat sheet</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Concept</th>
+        <th>Semgrep (SAST)</th>
+        <th>gitleaks (secrets)</th>
+        <th>npm audit (SCA)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="cat">Location</td>
+        <td class="spec"><code>path</code> + <code>start.line</code></td>
+        <td class="spec"><code>File</code> + <code>StartLine</code></td>
+        <td class="spec">none — findings are package-level, not line-level</td>
+      </tr>
+      <tr>
+        <td class="cat">Severity source</td>
+        <td class="spec"><code>extra.severity</code> (ERROR/WARNING/INFO), mapped to HIGH/MEDIUM/LOW</td>
+        <td class="spec">none — every hit is hardcoded CRITICAL</td>
+        <td class="spec"><code>vulnerabilities.&lt;pkg&gt;.severity</code> (critical/high/moderate/low/info); "moderate" renamed to MEDIUM</td>
+      </tr>
+      <tr>
+        <td class="cat">Dedupe identity</td>
+        <td class="spec">rule_id + file_path + line_number</td>
+        <td class="spec">rule_id + file_path + line_number</td>
+        <td class="spec">rule_id + package_name (no file/line)</td>
+      </tr>
+      <tr>
+        <td class="cat">Extra fields kept</td>
+        <td class="spec">none beyond the common set</td>
+        <td class="spec"><code>commit_sha</code>; fixed remediation sentence ("rotate the credential")</td>
+        <td class="spec"><code>package_name</code>, <code>package_version</code>; remediation ("npm audit fix" or manual)</td>
+      </tr>
+    </tbody>
+  </table>
+  <figcaption>This is why <code>Finding.file_path</code> can hold a source path, a DAST endpoint URL, or nothing at all depending on <code>source</code> — one field reused with its actual meaning documented in the column's own <code>description=</code>, rather than three near-identical nullable columns for something that's conceptually "where this finding lives."</figcaption>
+</div>
+
+</body></html>
