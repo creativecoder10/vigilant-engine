@@ -238,11 +238,38 @@ this workflow: nothing has been pushed to a GitHub remote yet.
 
 ## Phase 4 — dashboard (`dashboard/`)
 
-- [ ] Next.js app scaffold (App Router + TypeScript)
-- [ ] `src/lib/` — typed client for the ingestion API
-- [ ] `src/types/` — TS types mirroring `Finding`
-- [ ] `src/components/` — findings table, severity chart, open-vs-fixed trend
-- [ ] Landing page pulling real data from `/findings` and `/stats`
+- [x] Next.js app scaffold (App Router + TypeScript, Tailwind) —
+      `create-next-app`, npm.
+- [x] `src/lib/api.ts` — typed server-side client (`getFindings`,
+      `getStats`) against the ingestion API. Reads `INGESTION_API_URL`
+      from the environment (defaults to `http://localhost:8000`); no
+      `NEXT_PUBLIC_` prefix since it only ever runs in Server Components,
+      never shipped to the browser.
+- [x] `src/types/finding.ts` — TS types mirroring `Finding`/`Severity`/
+      `Source`/`FindingStatus`/`Stats` from `ingestion/app/schema.py` and
+      `models.py`. Hand-kept in sync, not codegen'd — same tradeoff noted
+      in `Finding`'s own docstring.
+- [x] `src/components/` — `SeverityStats` (stat tiles), `SourceBreakdown`
+      (per-scanner bar chart), `FindingsTable`. Colors follow the dataviz
+      skill's method rather than eyeballed choices: severity uses the
+      fixed status ramp (critical/serious/warning/good; `info` falls back
+      to muted ink since it isn't a status level in the same sense), and
+      scanner source uses the fixed 6-slot categorical ramp — both run
+      through `validate_palette.js` (CVD separation, contrast) before
+      use, in both light and dark mode. Identity is never color-alone: a
+      swatch sits *beside* a text label, never colors the text itself.
+  - [ ] Open-vs-fixed trend — deferred, not just unbuilt: it needs
+        history across multiple scans, which needs the `scan_runs` table
+        gap already flagged in Phase 3 (per-finding `first_seen`/
+        `last_seen` isn't the same as a queryable run history). Building
+        this now would mean faking the data it's supposed to show.
+- [x] Landing page (`src/app/page.tsx`) pulling real data from
+      `getFindings({status: "open"})` and `getStats()`.
+- [x] **Verified, not just built:** local ingestion API seeded with the
+      actual raw scanner output artifact from the successful Phase 3 CI
+      run (180 real findings, same numbers as the live run) — `npm run
+      build`/`lint` clean, then screenshotted with Playwright in both
+      light and dark mode, zero console/page errors.
 
 ## Phase 5 — packaging
 
