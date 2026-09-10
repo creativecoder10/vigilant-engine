@@ -8,6 +8,12 @@ on:
 jobs:
   scan-and-ingest:
     runs-on: ubuntu-latest
+    env:
+      # `secrets` isn't available inside `if:` expressions (only in `env:`,
+      # `with:`, `container:`, `services:`, and job `environment:`), so the
+      # token is promoted to a job-level env var here and checked as
+      # `env.SNYK_TOKEN` in the Snyk steps' `if:` conditions instead.
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     steps:
       - name: Check out vigilant-engine (with demo-target submodule)
         uses: actions/checkout@v4
@@ -72,16 +78,14 @@ jobs:
 
       # ---------- Snyk (SCA) - only runs once SNYK_TOKEN is configured ----------
       - name: Run Snyk
-        if: ${{ secrets.SNYK_TOKEN != '' }}
+        if: ${{ env.SNYK_TOKEN != '' }}
         working-directory: demo-target
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           npm install -g snyk
           snyk test --json > ../snyk-results.json || true
 
       - name: Ingest Snyk results
-        if: ${{ secrets.SNYK_TOKEN != '' }}
+        if: ${{ env.SNYK_TOKEN != '' }}
         run: python3 .github/scripts/post_to_ingestion.py --source snyk --file snyk-results.json
 
       # ---------- gitleaks (secret scanning) ----------
