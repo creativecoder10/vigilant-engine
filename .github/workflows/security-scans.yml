@@ -30,6 +30,15 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Upgrade npm
+        # Node 22's bundled npm (10.9.8 on the ubuntu-latest runner as of this
+        # writing) hits a known Arborist null-pointer bug ("Cannot read
+        # properties of null (reading 'edgesOut')") when resolving
+        # demo-target/frontend's dependency tree during its postinstall step.
+        # Not reproducible locally, where npm 11.x is used - upgrading here
+        # closes that version gap instead of pinning to a broken one.
+        run: npm install -g npm@latest
+
       - name: Install ingestion service dependencies
         run: pip install -r ingestion/requirements.txt
 
