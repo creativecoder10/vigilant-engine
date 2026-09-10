@@ -65,3 +65,34 @@ issue) that only shows up once real infrastructure is involved. The plan
 was: commit everything, push, then watch the run live in the repository's
 **Actions** tab rather than assuming a clean pass, and debug directly
 from whatever the log showed if something failed.
+
+## Outcome
+
+The judgment call held: not one surprise, but two, neither visible from
+static checks or local runs. Both were real bugs, not flukes:
+
+1. `if: ${{ secrets.SNYK_TOKEN != '' }}` is invalid — the `secrets`
+   context isn't available inside `if:` expressions. This had silently
+   broken the workflow since it was first written (confirmed via the
+   Actions API: the two prior pushes had failed identically, with zero
+   jobs ever scheduled).
+2. `demo-target`'s nested frontend `npm install` crashed under CI's
+   bundled npm 10.9.8 with a known Arborist bug — didn't reproduce
+   locally under npm 11.x, which is what pointed at a version gap rather
+   than a real dependency problem.
+
+Diagnosing #2 required reading the actual job log, which needed
+authenticating the `gh` CLI first (GitHub's log-download endpoint
+requires a token even for public repos, unlike the run/job metadata
+endpoints, which don't).
+
+With both fixed:
+[run 34469209245](https://github.com/creativecoder10/vigilant-engine/actions/runs/34469209245)
+completed successfully end to end — 180 real open findings ingested (67
+Semgrep, 45 npm audit, 68 gitleaks; 75 critical / 37 high / 61 medium / 5
+low / 2 info), the `pytest` gate passed, and both artifacts
+(`pytest-report`, `raw-scanner-output`) uploaded correctly.
+
+Full diagnosis of both issues, plus a third (browser login vs. CLI
+authentication) hit along the way, is recorded in the interview-prep
+doc's "Blockers hit getting Phase 3's first real CI run working" section.

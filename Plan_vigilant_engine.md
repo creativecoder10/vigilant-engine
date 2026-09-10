@@ -86,12 +86,25 @@ One job, one runner VM, every step below executing on it in order:
 10. Run gitleaks against `demo-target/` → ingest the results.
 11. Print `/stats` (aggregated counts by severity/source) as a smoke test.
 
-- [ ] Workflow: run Semgrep, npm audit, Snyk, gitleaks against `demo-target/` source
-      — **written**, not yet run: `.github/workflows/security-scans.yml` +
-      `.github/scripts/post_to_ingestion.py`. Snyk step is gated behind
-      `secrets.SNYK_TOKEN` so it no-ops until that account exists. Needs a
-      real push/PR to a GitHub remote to actually verify it runs — nothing
-      pushed yet, repo has no commits.
+- [x] Workflow: run Semgrep, npm audit, Snyk, gitleaks against `demo-target/` source
+      — `.github/workflows/security-scans.yml` + `.github/scripts/post_to_ingestion.py`.
+      Snyk step is gated behind `env.SNYK_TOKEN` (see fix below) so it
+      no-ops until that account exists. **Verified against a real run:**
+      [run 34469209245](https://github.com/creativecoder10/vigilant-engine/actions/runs/34469209245) —
+      every step succeeded (Snyk correctly skipped, no token configured
+      yet). 180 real open findings ingested: 67 from Semgrep, 45 from
+      npm audit, 68 from gitleaks (75 critical / 37 high / 61 medium / 5
+      low / 2 info). Took two real fixes to get here, both only visible
+      once actually run on GitHub's infrastructure — see
+      `docs/FIRST_CI_RUN_EXPECTATIONS.md` and the interview-prep doc's
+      "Blockers" section for the full diagnosis of each:
+      1. `if: ${{ secrets.SNYK_TOKEN != '' }}` is invalid — `secrets` isn't
+         available inside `if:` expressions. Fixed by promoting it to a
+         job-level `env:` var and checking `env.SNYK_TOKEN` instead.
+      2. `demo-target`'s nested frontend `npm install` crashed under the
+         npm 10.9.8 bundled with Node 22 on the runner (a known Arborist
+         bug) — didn't reproduce locally under npm 11.x. Fixed with an
+         explicit `npm install -g npm@latest` step after Node setup.
 - [ ] Workflow: boot Juice Shop in a container, run ZAP baseline scan against it
 - [ ] Workflow: build `ingestion/` and `dashboard/` images, run Trivy against them
 - [ ] Each job POSTs its raw output to the ingestion API's `/ingest`
