@@ -171,7 +171,7 @@
 
   .findings {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
   }
   .finding {
@@ -380,16 +380,12 @@
   </section>
 
   <section>
-    <h2>Two things worth fixing</h2>
-    <p class="section-note">Neither breaks anything today — these are markdown links, not code — but both are quick to reconcile.</p>
+    <h2>One thing left to fix</h2>
+    <p class="section-note">The duplicated threat-model JSON has been resolved — the repo-root copy is gone and <code>docs/juice-shop-threat-model.json</code> now holds its content (the newer Threat Dragon export, same 10 findings, updated trust-boundary layout). This one's still open:</p>
     <div class="findings">
       <div class="finding danger">
         <h3>Dead links in README.md <span class="chip">broken</span></h3>
         <p><a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> link to <code>docs/INTERVIEW_PREP_APPSEC1.md</code> and <code>docs/BURP_TESTING_STEPS.md</code> — paths that no longer exist since commit <code>f560d08</code> moved both files to <code>../notes/</code>. Say the word and I'll repoint them.</p>
-      </div>
-      <div class="finding">
-        <h3>Two copies of one JSON <span class="chip">duplicate</span></h3>
-        <p><a href="juice-shop-threat-model.json">docs/juice-shop-threat-model.json</a> and <a href="../juice-shop-threat-model.json">the copy at repo root</a> differ in content. Worth picking one as the source of truth before anything ingests it.</p>
       </div>
     </div>
   </section>
@@ -437,7 +433,7 @@
           <tr>
             <td class="doc"><a href="juice-shop-threat-model.json">juice-shop-threat-model.json</a></td>
             <td class="role">Structured/machine-readable twin of the threat model</td>
-            <td class="role"><a href="../juice-shop-threat-model.json">duplicated at repo root</a> — <span class="flag dup">contents differ</span></td>
+            <td class="role">THREAT_MODEL.md</td>
           </tr>
           <tr>
             <td class="doc"><a href="../ingestion/README.md">ingestion/README.md</a></td>
