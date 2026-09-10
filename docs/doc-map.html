@@ -17,8 +17,6 @@
     --accent: #0e6f6a;
     --accent-ink: #0a4f4b;
     --accent-soft: #cfe7e3;
-    --danger: #a1402e;
-    --danger-soft: #f4ddd5;
     --warn: #9c6c1f;
     --warn-soft: #f1e3c4;
     --repo-zone: #e8f1ee;
@@ -37,8 +35,6 @@
       --accent: #59c9be;
       --accent-ink: #b7ebe4;
       --accent-soft: #1c3733;
-      --danger: #e2917d;
-      --danger-soft: #3a231e;
       --warn: #e0b45d;
       --warn-soft: #382e17;
       --repo-zone: #142520;
@@ -56,8 +52,6 @@
     --accent: #59c9be;
     --accent-ink: #b7ebe4;
     --accent-soft: #1c3733;
-    --danger: #e2917d;
-    --danger-soft: #3a231e;
     --warn: #e0b45d;
     --warn-soft: #382e17;
     --repo-zone: #142520;
@@ -176,13 +170,12 @@
   }
   .finding {
     border: 1px solid var(--border);
-    border-left: 3px solid var(--warn);
+    border-left: 3px solid var(--accent);
     background: var(--surface);
     border-radius: 10px;
     padding: 16px 18px;
     box-shadow: var(--shadow);
   }
-  .finding.danger { border-left-color: var(--danger); }
   .finding h3 {
     font-family: "IBM Plex Sans", sans-serif;
     font-size: 14px;
@@ -197,12 +190,11 @@
     font-size: 10.5px;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    background: var(--warn-soft);
-    color: var(--warn);
+    background: var(--accent-soft);
+    color: var(--accent-ink);
     border-radius: 5px;
     padding: 2px 7px;
   }
-  .finding.danger .chip { background: var(--danger-soft); color: var(--danger); }
   .finding p { margin: 0; color: var(--muted); font-size: 13.5px; }
   .finding code { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
@@ -230,9 +222,6 @@
   td.role { color: var(--muted); max-width: 34ch; }
   td.role a { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
   .folder-row td { background: var(--surface-2); font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-ink); padding: 7px 16px; }
-  .flag { display: inline-block; margin-top: 4px; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; }
-  .flag.broken { background: var(--danger-soft); color: var(--danger); }
-  .flag.dup { background: var(--warn-soft); color: var(--warn); }
 
   footer { color: var(--muted); font-size: 12.5px; padding-top: 8px; border-top: 1px solid var(--border); }
   footer code { font-family: "IBM Plex Mono", monospace; }
@@ -253,20 +242,17 @@
 
   <div class="context">
     <span class="tag">why two folders</span>
-    <p>Commit <code>f560d08</code> — "Remove docs moved to external notes folder" — pulled the interview-prep and Burp runbook docs out of <code>vigilant-engine/</code> into <code>../notes/</code>, so project docs and rehearsal docs don't ship in the same git history. The split is intentional; a couple of links inside the repo just weren't updated to match. Note: the <code>../notes/</code> links only resolve on this machine — that folder isn't part of this git repo, so they'll 404 for anyone else who clones it.</p>
+    <p>Commit <code>f560d08</code> — "Remove docs moved to external notes folder" — pulled the interview-prep and Burp runbook docs out of <code>vigilant-engine/</code> into <code>../notes/</code>, so project docs and rehearsal docs don't ship in the same git history. The links inside the repo have since been repointed at the new location. Note: the <code>../notes/</code> links only resolve on this machine — that folder isn't part of this git repo, so they'll 404 for anyone else who clones it.</p>
   </div>
 
   <section>
     <h2>The reference graph</h2>
-    <p class="section-note">Solid teal = a live link that resolves. Dashed red = a link still pointing at the pre-move path. Dotted = a companion or data twin, not a hub-and-spoke link. Every box below is clickable.</p>
+    <p class="section-note">Solid teal = a live link that resolves. Dotted = a companion or data twin, not a hub-and-spoke link. Every box below is clickable.</p>
     <figure class="diagram-card">
-      <svg viewBox="0 0 1040 600" role="img" aria-label="Diagram showing README.md, ARCHITECTURE.md, Plan_vigilant_engine.md, THREAT_MODEL.md, the threat-modeling-plan PDF and ingestion/README.md inside vigilant-engine, connected to INTERVIEW_PREP_APPSEC1.md, its companion Q&amp;A doc, BURP_TESTING_STEPS.md and STRIDE_METHODOLOGY.md inside the external notes folder. Two links from README.md to the notes folder are broken; two other cross-folder links from the notes side still resolve.">
+      <svg viewBox="0 0 1040 600" role="img" aria-label="Diagram showing README.md, ARCHITECTURE.md, Plan_vigilant_engine.md, THREAT_MODEL.md, the threat-modeling-plan PDF and ingestion/README.md inside vigilant-engine, connected to INTERVIEW_PREP_APPSEC1.md, its companion Q&amp;A doc, BURP_TESTING_STEPS.md and STRIDE_METHODOLOGY.md inside the external notes folder. All links resolve, including the two crossing from README.md into the notes folder.">
         <defs>
           <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" />
-          </marker>
-          <marker id="arrowDanger" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="var(--danger)" />
           </marker>
           <marker id="arrowInk" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)" />
@@ -318,7 +304,7 @@
         <!-- NOTES NODES (center x = 780) -->
         <g font-family="IBM Plex Mono, monospace" font-size="12.5">
           <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">
-            <rect class="node" x="670" y="70" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--danger)" stroke-width="1.5" />
+            <rect class="node" x="670" y="70" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5" />
             <text class="node-label" x="780" y="97" text-anchor="middle" fill="var(--ink)">INTERVIEW_PREP_APPSEC1</text>
           </a>
 
@@ -329,7 +315,7 @@
           </a>
 
           <a href="../../../notes/BURP_TESTING_STEPS.md">
-            <rect class="node" x="670" y="322" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--danger)" stroke-width="1.5" />
+            <rect class="node" x="670" y="322" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5" />
             <text class="node-label" x="780" y="349" text-anchor="middle" fill="var(--ink)">BURP_TESTING_STEPS</text>
           </a>
 
@@ -355,12 +341,12 @@
         <line x1="780" y1="154" x2="780" y2="114" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1 5" marker-end="url(#arrowInk)" />
         <text x="794" y="138" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">companion</text>
 
-        <!-- README -> notes, broken -->
-        <path d="M370,84 C480,84 560,88 670,90" fill="none" stroke="var(--danger)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrowDanger)" />
-        <text x="510" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--danger)">docs/INTERVIEW_PREP… ✕ moved</text>
+        <!-- README -> notes -->
+        <path d="M370,84 C480,84 560,88 670,90" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
+        <text x="510" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)">../notes/INTERVIEW_PREP…</text>
 
-        <path d="M370,104 C480,140 560,300 670,336" fill="none" stroke="var(--danger)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrowDanger)" />
-        <text x="500" y="230" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--danger)" transform="rotate(24 500 230)">docs/BURP_TESTING… ✕ moved</text>
+        <path d="M370,104 C480,140 560,300 670,336" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
+        <text x="500" y="230" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)" transform="rotate(24 500 230)">../notes/BURP_TESTING…</text>
 
         <!-- notes -> repo, crossing boundary, working -->
         <path d="M670,344 C560,344 460,344 370,344" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
@@ -369,23 +355,26 @@
         <path d="M670,418 C560,400 460,360 370,336" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
         <text x="470" y="405" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)" transform="rotate(-10 470 405)">illustrated by</text>
       </svg>
-      <figcaption>The two folders used to be one. <a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> still hold two links to the old <code style="font-family:'IBM Plex Mono',monospace">docs/</code> paths for INTERVIEW_PREP_APPSEC1.md and BURP_TESTING_STEPS.md — dead since the move. The links running the other direction, from the notes side back into <a href="THREAT_MODEL.md">docs/THREAT_MODEL.md</a>, were written after the split and resolve fine.</figcaption>
+      <figcaption>The two folders used to be one. <a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> once held two links to the old <code style="font-family:'IBM Plex Mono',monospace">docs/</code> paths for INTERVIEW_PREP_APPSEC1.md and BURP_TESTING_STEPS.md — both now repointed at <code style="font-family:'IBM Plex Mono',monospace">../notes/</code>. The links running the other direction, from the notes side back into <a href="THREAT_MODEL.md">docs/THREAT_MODEL.md</a>, were written after the split and resolved from the start.</figcaption>
     </figure>
     <div class="legend">
       <span><svg viewBox="0 0 30 12"><line x1="2" y1="6" x2="26" y2="6" stroke="var(--accent)" stroke-width="2"/></svg> live link / reference</span>
-      <span><svg viewBox="0 0 30 12"><line x1="2" y1="6" x2="26" y2="6" stroke="var(--danger)" stroke-width="2" stroke-dasharray="4 3"/></svg> broken — path moved</span>
       <span><svg viewBox="0 0 30 12"><line x1="2" y1="6" x2="26" y2="6" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="1 4"/></svg> companion / data twin</span>
       <span class="hint">↳ boxes are links</span>
     </div>
   </section>
 
   <section>
-    <h2>One thing left to fix</h2>
-    <p class="section-note">The duplicated threat-model JSON has been resolved — the repo-root copy is gone and <code>docs/juice-shop-threat-model.json</code> now holds its content (the newer Threat Dragon export, same 10 findings, updated trust-boundary layout). This one's still open:</p>
+    <h2>Housekeeping, resolved</h2>
+    <p class="section-note">Two loose ends turned up while building this map. Both are fixed now.</p>
     <div class="findings">
-      <div class="finding danger">
-        <h3>Dead links in README.md <span class="chip">broken</span></h3>
-        <p><a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> link to <code>docs/INTERVIEW_PREP_APPSEC1.md</code> and <code>docs/BURP_TESTING_STEPS.md</code> — paths that no longer exist since commit <code>f560d08</code> moved both files to <code>../notes/</code>. Say the word and I'll repoint them.</p>
+      <div class="finding">
+        <h3>Links repointed to ../notes/ <span class="chip">fixed</span></h3>
+        <p><a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> linked to <code>docs/INTERVIEW_PREP_APPSEC1.md</code> and <code>docs/BURP_TESTING_STEPS.md</code>, paths that stopped existing when commit <code>f560d08</code> moved those files to <code>../notes/</code>. Both now point at the real location. README's stray <code>PLAN.md</code> reference (renamed to <code>Plan_vigilant_engine.md</code> in <code>e23e41d</code>) got the same fix.</p>
+      </div>
+      <div class="finding">
+        <h3>Duplicate JSON merged <span class="chip">fixed</span></h3>
+        <p>The repo-root <code>juice-shop-threat-model.json</code> and the <code>docs/</code> copy held the same 10 findings under different Threat Dragon export versions. Kept the newer one at <a href="juice-shop-threat-model.json">docs/juice-shop-threat-model.json</a> — the path the rest of the docs reference — and removed the root copy.</p>
       </div>
     </div>
   </section>
@@ -403,7 +392,7 @@
           <tr>
             <td class="doc"><a href="../README.md">README.md</a></td>
             <td class="role">Entry point — links out to every doc below</td>
-            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE</a>, <a href="../Plan_vigilant_engine.md">Plan</a>, <a href="THREAT_MODEL.md">THREAT_MODEL</a>, <a href="../ingestion/README.md">ingestion/README</a><br><span class="flag broken">2 broken links to notes/</span></td>
+            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE</a>, <a href="../Plan_vigilant_engine.md">Plan</a>, <a href="THREAT_MODEL.md">THREAT_MODEL</a>, <a href="../ingestion/README.md">ingestion/README</a>, <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">../notes/INTERVIEW_PREP_APPSEC1</a>, <a href="../../../notes/BURP_TESTING_STEPS.md">../notes/BURP_TESTING_STEPS</a></td>
           </tr>
           <tr>
             <td class="doc"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a></td>
@@ -413,7 +402,7 @@
           <tr>
             <td class="doc"><a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a></td>
             <td class="role">Phased build checklist, what's done vs. still open</td>
-            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a><br><span class="flag broken">1 broken link to notes/</span></td>
+            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a>, <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">../notes/INTERVIEW_PREP_APPSEC1</a>, <a href="../../../notes/BURP_TESTING_STEPS.md">../notes/BURP_TESTING_STEPS</a></td>
           </tr>
           <tr>
             <td class="doc"><a href="THREAT_MODEL.md">docs/THREAT_MODEL.md</a></td>

@@ -7,10 +7,10 @@ for the target shape.
 
 - [x] `ARCHITECTURE.md` — solution architecture, scanner coverage, bill of materials
 - [x] `ingestion/app/schema.py` — shared `Finding` / `IngestRequest` models
-- [x] `PLAN.md` (this file)
-- [x] `docs/INTERVIEW_PREP_APPSEC1.md` — how this project maps to the AppSec engineer role
+- [x] `Plan_vigilant_engine.md` (this file)
+- [x] `../notes/INTERVIEW_PREP_APPSEC1.md` — how this project maps to the AppSec engineer role
 - [x] `docs/THREAT_MODEL.md` — manual STRIDE analysis of Juice Shop (confirmed findings, in progress)
-- [x] `docs/BURP_TESTING_STEPS.md` — live runbook for hands-on Burp Suite testing
+- [x] `../notes/BURP_TESTING_STEPS.md` — live runbook for hands-on Burp Suite testing
 - [x] `docs/vigilant-engine-threat-modeling-plan.pdf` — phased threat-modeling plan (STRIDE + Threat Dragon + ATT&CK)
 
 ## Phase 1 — demo-target
