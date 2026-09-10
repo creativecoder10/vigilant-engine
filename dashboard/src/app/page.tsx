@@ -2,9 +2,25 @@ import { getFindings, getStats } from "@/lib/api";
 import { SeverityStats } from "@/components/SeverityStats";
 import { SourceBreakdown } from "@/components/SourceBreakdown";
 import { FindingsTable } from "@/components/FindingsTable";
+import { SEVERITY_ORDER } from "@/lib/colors";
+import type { Severity } from "@/types/finding";
 
-export default async function DashboardPage() {
-  const [stats, findings] = await Promise.all([getStats(), getFindings({ status: "open", limit: 100 })]);
+function parseSeverity(value: string | string[] | undefined): Severity | null {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return (SEVERITY_ORDER as string[]).includes(candidate ?? "") ? (candidate as Severity) : null;
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const activeSeverity = parseSeverity((await searchParams).severity);
+
+  const [stats, findings] = await Promise.all([
+    getStats(),
+    getFindings({ status: "open", severity: activeSeverity ?? undefined, limit: 100 }),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-10">
@@ -15,13 +31,14 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <SeverityStats stats={stats} />
+      <SeverityStats stats={stats} activeSeverity={activeSeverity} />
 
       <SourceBreakdown stats={stats} />
 
       <section>
         <h2 className="mb-3 text-sm font-medium" style={{ color: "var(--ink-secondary)" }}>
           Open findings
+          {activeSeverity ? ` — ${activeSeverity}` : ""}
         </h2>
         <FindingsTable findings={findings} />
       </section>
