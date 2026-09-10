@@ -270,6 +270,16 @@ this workflow: nothing has been pushed to a GitHub remote yet.
       run (180 real findings, same numbers as the live run) — `npm run
       build`/`lint` clean, then screenshotted with Playwright in both
       light and dark mode, zero console/page errors.
+- [x] Severity/criticality filter — `SeverityStats`' tiles double as the
+      filter control (pattern checked against a reference app,
+      `threat-pulse-kappa.vercel.app`'s alert feed): clicking a tile sets
+      `?severity=<x>`, read server-side via the page's `searchParams`
+      prop and passed straight into the existing typed `getFindings()`
+      call — the real `/findings?severity=` query runs, not a
+      client-side filter over an already-fetched array. Verified
+      end-to-end: clicking "Critical" produces exactly 75 rows, all
+      `severity=critical`, confirmed by reading the rendered table's
+      actual cell values, not just the URL changing.
 
 ## Phase 5 — packaging
 
