@@ -27,6 +27,17 @@ jobs:
       - name: Install ingestion service dependencies
         run: pip install -r ingestion/requirements.txt
 
+      - name: Run ingestion service tests
+        working-directory: ingestion
+        run: pytest --junitxml=pytest-report.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: ingestion/pytest-report.xml
+
       - name: Start the ingestion API in the background
         working-directory: ingestion
         run: |
@@ -86,5 +97,18 @@ jobs:
       - name: Ingest gitleaks results
         run: python3 .github/scripts/post_to_ingestion.py --source gitleaks --file gitleaks-results.json
 
-      - name: Show resulting stats
-        run: curl -s http://localhost:8000/stats | python3 -m json.tool
+      - name: Upload raw scanner output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-scanner-output
+          path: |
+            semgrep-results.json
+            npm-audit-results.json
+            snyk-results.json
+            gitleaks-results.json
+          if-no-files-found: ignore
+
+      - name: Show resulting stats and write run summary
+        if: always()
+        run: python3 .github/scripts/write_run_summary.py
