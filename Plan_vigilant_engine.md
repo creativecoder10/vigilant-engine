@@ -453,7 +453,7 @@ remote yet.
         rows, all `severity=critical`, confirmed by reading the rendered
         table's actual cell values, not just the URL changing.
 
-## Phase 5 — packaging
+## Phase 5 — packaging — done
 
 **What `docker compose up` actually does, behind the scenes:**
 
@@ -552,7 +552,14 @@ flowchart LR
       data, not just a table that exists unused. Unblocks Phase 4's
       deferred open-vs-fixed trend chart (the chart itself still isn't
       built — this is the data it would read).
-- [ ] `README.md` — one-command local run instructions
+- [x] `README.md` — one-command local run instructions:
+      `git submodule update --init && docker compose up --build`, plus the
+      three URLs to open and a curl seed example. **Verified, not just
+      written:** confirmed `git submodule status` requires the init step
+      (demo-target is empty without it), and ran the exact `docker compose
+      down -v` claimed to wipe `findings.db` — `total_open` went 13 → 0,
+      proving the volume-vs-`-v` distinction documented there is accurate,
+      not just asserted.
 
 ## Phase 6 — polish
 
@@ -560,6 +567,12 @@ flowchart LR
 - [ ] Screenshot the dashboard for the README / portfolio writeup
 
 ## Phase 7 — AWS deployment via Terraform (basic IaC, public demo)
+
+**Before starting this phase, read
+[docs/PRD_PHASE7_AWS_DEPLOYMENT.md](docs/PRD_PHASE7_AWS_DEPLOYMENT.md)**
+— architecture diagram, the always-on-vs-teardown decision to make
+before writing `rds.tf`/`ecs.tf`, and why Kubernetes is deliberately
+not part of this phase.
 
 Moves the Phase-5 `docker-compose` stack onto AWS, provisioned through
 Terraform instead of clicking through the console — the goal is a real,

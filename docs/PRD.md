@@ -1,6 +1,6 @@
 # PRD — vigilant-engine: AppSec Findings Pipeline & Dashboard
 
-**Status:** Phases 1–5 shipped (Phase 5's one-command README still open). Phases 6–8 not started.
+**Status:** Phases 1–5 shipped. Phases 6–8 not started.
 **Owner:** Deepesh Dang
 **Last updated:** 2026-09-15
 
@@ -174,9 +174,9 @@ gap between what was claimed and what was true.
 
 | Phase | Scope |
 | --- | --- |
-| 5 — packaging | Dockerfiles for `ingestion`/`dashboard`, root `docker-compose.yml`, and `scan_runs` (one row per scan run, snapshotting open-finding counts by severity) — all shipped, see [4.5](#45-packaging-ingestiondockerfile-dashboarddockerfile-docker-composeyml--shipped). Only the one-command README is still open |
+| 5 — packaging | **Shipped.** Dockerfiles for `ingestion`/`dashboard`, root `docker-compose.yml`, `scan_runs` (one row per scan run, snapshotting open-finding counts by severity), and the root README's one-command run instructions — see [4.5](#45-packaging-ingestiondockerfile-dashboarddockerfile-docker-composeyml--shipped) |
 | 6 — polish | Full end-to-end run, dashboard screenshots, interview-prep doc reconciled against what shipped |
-| 7 — AWS deployment via Terraform (basic IaC) | Terraform-provisioned VPC/ECR/RDS/ECS/ALB stack, private DB + no hardcoded secrets + scoped security groups as non-negotiable defaults, first deploy run by hand — gets a real public URL |
+| 7 — AWS deployment via Terraform (basic IaC) | Terraform-provisioned VPC/ECR/RDS/ECS/ALB stack, private DB + no hardcoded secrets + scoped security groups as non-negotiable defaults, first deploy run by hand — gets a real public URL — see [docs/PRD_PHASE7_AWS_DEPLOYMENT.md](PRD_PHASE7_AWS_DEPLOYMENT.md) |
 | 8 — cloud-security automation (stretch) | CI-driven deploy job, GitHub OIDC auth for CI, `tfsec`/`checkov` scanning of the Terraform, a deeper least-privilege IAM audit pass |
 | 9 — AI-generated fix review pipeline | LLM-proposed fixes for a handful of real findings, validated and documented against a reusable review checklist — see [docs/PRD_FIX_REVIEW.md](PRD_FIX_REVIEW.md) |
 
