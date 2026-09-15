@@ -56,3 +56,24 @@ class Finding(SQLModel, table=True):
     first_seen: datetime = Field(default_factory=_utcnow)
     last_seen: datetime = Field(default_factory=_utcnow)
     raw: dict = Field(default_factory=dict, sa_column=Column(JSON), description="Original scanner record, kept for audit/debugging")
+
+
+class ScanRun(SQLModel, table=True):
+    """One row per completed scan run: a timestamped snapshot of open-finding
+    counts by severity, so the dashboard can chart how totals changed over
+    time - something Finding's own first_seen/last_seen can't answer, since
+    those only say whether *one* finding is still open, not how the overall
+    count moved between runs.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    timestamp: datetime = Field(default_factory=_utcnow)
+    repo: str
+    branch: str = "main"
+    commit_sha: Optional[str] = None
+    total_open: int
+    critical: int
+    high: int
+    medium: int
+    low: int
+    info: int

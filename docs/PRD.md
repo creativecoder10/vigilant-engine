@@ -1,8 +1,8 @@
 # PRD — vigilant-engine: AppSec Findings Pipeline & Dashboard
 
-**Status:** Phases 1–4 shipped. Phase 5 design decided, not yet built. Phases 6–8 not started.
+**Status:** Phases 1–5 shipped (Phase 5's one-command README still open). Phases 6–8 not started.
 **Owner:** Deepesh Dang
-**Last updated:** 2026-09-11
+**Last updated:** 2026-09-15
 
 ## 1. Problem
 
@@ -79,7 +79,7 @@ states the *requirement* each phase satisfies and whether it shipped.
 | Findings must be triageable by severity | `SeverityStats` tiles double as a filter: clicking one sets `?severity=<x>`, read via `searchParams`, passed into a real `getFindings({severity})` query — not a client-side filter over an already-fetched array. Verified: clicking "Critical" returns exactly 75 rows, all `severity=critical` |
 | Visual identity must be accessible, not eyeballed | Colors run through the dataviz skill's `validate_palette.js` (CVD separation, contrast) in both light and dark mode; severity/source are never color-only — a swatch always sits beside a text label |
 | Verified, not just built | `npm run build`/`lint` clean; Playwright screenshots in both light and dark mode, zero console/page errors |
-| Deferred, not built | Open-vs-fixed trend — needs a queryable run history, which needs the `scan_runs` table gap below |
+| Deferred, not built | Open-vs-fixed trend — needs a queryable run history. `scan_runs` (one row per scan run, snapshotting open-finding counts by severity at that moment) now exists (§4.5) and unblocks this; the chart itself is still unbuilt |
 
 ### 4.5 Packaging (`ingestion/Dockerfile`, `dashboard/Dockerfile`, `docker-compose.yml`) — **shipped**
 
@@ -98,6 +98,7 @@ the simpler of the two remaining images — `docker build` succeeds and
 | `dashboard/Dockerfile` build must ship a minimal runtime, not the full build toolchain | Multi-stage (`deps`/`builder`/`runner`), `node:20-slim` (consistent glibc reasoning as `ingestion`'s base image — `package-lock.json` pulls in `sharp`, a compiled dependency), `next.config.ts` updated with `output: "standalone"` per Next.js's own documented Docker guidance |
 | Both images must actually talk to each other, not just build individually | **Verified together**, first manually on a real Docker network, then for real through `docker-compose.yml` itself: `dashboard` fetches live data from `http://ingestion:8000` — a container name, not `localhost` — and renders with no error boundary |
 | Root `docker-compose.yml` | Built and verified — wires `demo-target` (host `:3000`), `ingestion` (host `:8000`), and `dashboard` (host `:3001`, offset from `3000` since Juice Shop and the dashboard's standalone server both default to port 3000 internally) together on one Compose-managed network, with the named volume and `INGESTION_API_URL` set for real, not passed manually via `-e` |
+| Run history must be queryable, now that persistence is real (§5 gap) | `scan_runs` (`ScanRun` in `ingestion/app/models.py`) — one row per scan run, snapshotting open-finding counts by severity at that moment. Verified against the live compose stack, not just unit-tested: `total_open` moved 1 → 3 and `critical` moved 0 → 1 across two recorded snapshots |
 
 **Why decide the design before writing the file:** each of these is a
 plausible-looking default that fails silently if picked wrong (wrong host
@@ -108,16 +109,22 @@ fundamentals (images, base images, layers): `PHASE5_DOCKER_PACKAGING_NOTES.md`
 (in the external `job prep notes` folder, kept separate from interview-prep
 material since it's build/learning notes, not interview rehearsal).
 
-## 5. Known gap: run history
+## 5. Known gap: run history — **resolved**
 
 `Finding` carries per-row `first_seen`/`last_seen`, which answers "is this
 finding still open" but not "how did the finding count change from run to
-run." Closing that needs a `scan_runs` table (one row per run: timestamp,
-commit, per-severity snapshot) — a schema addition, not a rewrite. It's
-scoped to Phase 5, gated on the volume-backed database also landing there
-(no point tracking run history a container restart would wipe). Until
-then, the dashboard's open-vs-fixed trend stays deliberately unbuilt
-rather than built against faked data.
+run." Closing that needed a `scan_runs` table — **now built**:
+`ingestion/app/models.py`'s `ScanRun`, one row per scan run (timestamp,
+repo/branch/commit, per-severity snapshot counts), populated via
+`POST /scan-runs` (computes the snapshot from current open findings itself,
+so a row can never disagree with `/findings`) and read via `GET /scan-runs`
+(oldest first). It was scoped to Phase 5, gated on the volume-backed
+database landing there first (no point tracking run history a container
+restart would wipe) — the volume shipped, then this did. Verified against
+the real compose stack, not just unit-tested: seeded findings, recorded
+two snapshots, confirmed `total_open` moved 1 → 3 and `critical` moved
+0 → 1 across them. The dashboard's open-vs-fixed trend chart itself is
+still unbuilt — this closes the gap in the *data*, not the UI.
 
 ### 5.1 How this gap was caught
 
@@ -166,7 +173,7 @@ gap between what was claimed and what was true.
 
 | Phase | Scope |
 | --- | --- |
-| 5 — packaging | Dockerfiles for `ingestion`/`dashboard`, root `docker-compose.yml`, `scan_runs` table, one-command README — see [4.5](#45-packaging-ingestiondockerfile-dashboarddockerfile-docker-composeyml--design-decided-not-built) for design decisions made so far |
+| 5 — packaging | Dockerfiles for `ingestion`/`dashboard`, root `docker-compose.yml`, and `scan_runs` (one row per scan run, snapshotting open-finding counts by severity) — all shipped, see [4.5](#45-packaging-ingestiondockerfile-dashboarddockerfile-docker-composeyml--shipped). Only the one-command README is still open |
 | 6 — polish | Full end-to-end run, dashboard screenshots, interview-prep doc reconciled against what shipped |
 | 7 — AWS deployment via Terraform (basic IaC) | Terraform-provisioned VPC/ECR/RDS/ECS/ALB stack, private DB + no hardcoded secrets + scoped security groups as non-negotiable defaults, first deploy run by hand — gets a real public URL |
 | 8 — cloud-security automation (stretch) | CI-driven deploy job, GitHub OIDC auth for CI, `tfsec`/`checkov` scanning of the Terraform, a deeper least-privilege IAM audit pass |

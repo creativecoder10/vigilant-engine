@@ -1,12 +1,16 @@
 """FastAPI app: the ingestion service's HTTP surface.
 
-Three jobs, each behind one route - see ingestion/README.md for the full
+Five jobs, each behind one route - see ingestion/README.md for the full
 request-flow diagram:
 
-- ``POST /ingest``  receive one scanner's raw output, normalize it into
+- ``POST /ingest``     receive one scanner's raw output, normalize it into
   Finding rows via app/parsers/, and upsert them by dedupe_hash.
-- ``GET /findings``  list findings, filterable by severity/source/status/repo.
-- ``GET /stats``     counts by severity and by source, for the dashboard.
+- ``GET /findings``    list findings, filterable by severity/source/status/repo.
+- ``GET /stats``       counts by severity and by source, for the dashboard.
+- ``POST /scan-runs``  record a scan_runs snapshot (open-finding counts by
+  severity, right now) once a CI run's scanners have all finished ingesting.
+- ``GET /scan-runs``   list past snapshots, oldest first - what a future
+  open-vs-fixed trend chart would read.
 """
 from __future__ import annotations
 
@@ -18,9 +22,9 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Session, select
 
 from app.db import get_session, init_db
-from app.models import Finding
+from app.models import Finding, ScanRun
 from app.parsers import PARSERS
-from app.schema import FindingStatus, IngestRequest, Severity, Source
+from app.schema import FindingStatus, IngestRequest, ScanRunRequest, Severity, Source
 
 
 @asynccontextmanager
@@ -114,3 +118,53 @@ def stats(session: Session = Depends(get_session)) -> dict:
         by_source[finding.source.value] += 1
 
     return {"total_open": len(open_findings), "by_severity": by_severity, "by_source": by_source}
+
+
+@app.post("/scan-runs", response_model=ScanRun)
+def record_scan_run(request: ScanRunRequest, session: Session = Depends(get_session)) -> ScanRun:
+    """Snapshot this repo's current open-finding counts into a new scan_runs
+    row. Meant to be called once, at the end of a CI run, after every
+    scanner for that run has already POSTed to /ingest - the snapshot it
+    takes is whatever /findings would show at that exact moment, for this
+    repo. Severity counts are computed here, not accepted from the caller,
+    so a row can never disagree with the findings table it summarizes.
+    """
+    open_findings = session.exec(
+        select(Finding).where(Finding.status == FindingStatus.OPEN, Finding.repo == request.repo)
+    ).all()
+
+    counts = {s.value: 0 for s in Severity}
+    for finding in open_findings:
+        counts[finding.severity.value] += 1
+
+    run = ScanRun(
+        repo=request.repo,
+        branch=request.branch,
+        commit_sha=request.commit_sha,
+        total_open=len(open_findings),
+        critical=counts[Severity.CRITICAL.value],
+        high=counts[Severity.HIGH.value],
+        medium=counts[Severity.MEDIUM.value],
+        low=counts[Severity.LOW.value],
+        info=counts[Severity.INFO.value],
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+    return run
+
+
+@app.get("/scan-runs", response_model=list[ScanRun])
+def list_scan_runs(
+    session: Session = Depends(get_session),
+    repo: Optional[str] = None,
+    limit: int = Query(default=100, le=1000),
+) -> list[ScanRun]:
+    """List past scan_runs snapshots, oldest first - the shape a trend
+    chart (open-vs-fixed over time) would read, once the dashboard builds
+    one."""
+    query = select(ScanRun)
+    if repo is not None:
+        query = query.where(ScanRun.repo == repo)
+    query = query.order_by(ScanRun.timestamp.asc()).limit(limit)
+    return list(session.exec(query).all())

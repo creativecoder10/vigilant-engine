@@ -90,3 +90,41 @@ def test_findings_can_be_filtered_by_severity(client):
     high_only = client.get("/findings", params={"severity": "high"}).json()
     assert len(high_only) == 1
     assert high_only[0]["source"] == "semgrep"
+
+
+def test_scan_run_snapshot_matches_findings_at_that_moment(client):
+    client.post("/ingest", json={"source": "npm_audit", "repo": "demo-target", "raw_output": load("npm_audit.json")})
+
+    run = client.post("/scan-runs", json={"repo": "demo-target", "commit_sha": "abc123"}).json()
+    assert run["repo"] == "demo-target"
+    assert run["commit_sha"] == "abc123"
+    assert run["total_open"] == 1
+    assert run["high"] == 1
+    assert run["critical"] == 0
+
+
+def test_scan_run_recorded_twice_produces_two_rows_not_an_upsert(client):
+    """Unlike Finding's dedupe-by-hash upsert, scan_runs is meant to
+    accumulate - each call is a new point in a trend, not a repeat of the
+    same one."""
+    client.post("/ingest", json={"source": "npm_audit", "repo": "demo-target", "raw_output": load("npm_audit.json")})
+
+    client.post("/scan-runs", json={"repo": "demo-target"})
+    client.post("/ingest", json={"source": "semgrep", "repo": "demo-target", "raw_output": load("semgrep.json")})
+    client.post("/scan-runs", json={"repo": "demo-target"})
+
+    runs = client.get("/scan-runs").json()
+    assert len(runs) == 2
+    assert runs[0]["total_open"] == 1  # first snapshot: just the npm_audit finding
+    assert runs[1]["total_open"] == 2  # second: npm_audit + semgrep
+    assert runs[0]["timestamp"] <= runs[1]["timestamp"]  # oldest first, as documented
+
+
+def test_scan_runs_can_be_filtered_by_repo(client):
+    client.post("/ingest", json={"source": "npm_audit", "repo": "repo-a", "raw_output": load("npm_audit.json")})
+    client.post("/scan-runs", json={"repo": "repo-a"})
+    client.post("/scan-runs", json={"repo": "repo-b"})
+
+    repo_a_runs = client.get("/scan-runs", params={"repo": "repo-a"}).json()
+    assert len(repo_a_runs) == 1
+    assert repo_a_runs[0]["repo"] == "repo-a"

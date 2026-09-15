@@ -8,14 +8,18 @@ for how this fits into the whole project.
 
 ```
 app/
-  schema.py       enums (Severity, FindingStatus, Source) + the IngestRequest payload shape
-  models.py       Finding - the one row shape every scanner's output becomes; also the DB table
+  schema.py       enums (Severity, FindingStatus, Source) + the IngestRequest/ScanRunRequest payload shapes
+  models.py       Finding - the one row shape every scanner's output becomes; also the DB table.
+                  ScanRun - one row per scan run, snapshotting open-finding counts by severity at
+                  that moment; answers "how did the count change over time," which Finding's own
+                  first_seen/last_seen can't
   dedupe.py       compute_dedupe_hash() - turns "what a finding is" into a stable hash
   db.py           SQLite engine + session, used as a FastAPI dependency
   parsers/        one module per scanner: raw JSON in, list[Finding] out
     __init__.py     PARSERS dict - maps Source -> the right parser function
     semgrep.py, npm_audit.py, snyk.py, zap.py, gitleaks.py, trivy.py
-  main.py         the three HTTP routes: POST /ingest, GET /findings, GET /stats
+  main.py         the five HTTP routes: POST /ingest, GET /findings, GET /stats,
+                  POST /scan-runs, GET /scan-runs
 tests/
   fixtures/       one small, realistic sample JSON per scanner
   test_parsers.py unit tests: fixture in -> correct Finding fields out

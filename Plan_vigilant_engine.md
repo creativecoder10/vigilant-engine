@@ -9,9 +9,9 @@ requirements this plan implements.
 - [x] `ARCHITECTURE.md` — solution architecture, scanner coverage, bill of materials
 - [x] `ingestion/app/schema.py` — shared `Finding` / `IngestRequest` models
 - [x] `Plan_vigilant_engine.md` (this file)
-- [x] `../notes/INTERVIEW_PREP_APPSEC1.md` — how this project maps to the AppSec engineer role
 - [x] `docs/THREAT_MODEL.md` — manual STRIDE analysis of Juice Shop (confirmed findings, in progress)
-- [x] `../notes/BURP_TESTING_STEPS.md` — live runbook for hands-on Burp Suite testing
+- [x] `docs/BURP_TESTING_STEPS.md` — live runbook for hands-on Burp Suite testing
+- [x] `docs/STRIDE_METHODOLOGY.md` — STRIDE process notes, what to test per category
 - [x] `docs/vigilant-engine-threat-modeling-plan.pdf` — phased threat-modeling plan (STRIDE + Threat Dragon + ATT&CK)
 
 ## Phase 1 — demo-target
@@ -202,6 +202,18 @@ flowchart LR
     TR --> API
 ```
 
+> **Test-type classification — neither of these is IaC or "platform"
+> security testing.** ZAP = **DAST** (Dynamic Application Security
+> Testing) — application layer, exercises the running app over HTTP. Trivy
+> here = **container/artifact image scanning** — closer to SCA, but
+> scoped to a built image's layers (OS packages + baked-in deps) instead
+> of a source manifest. **IaC scanning** (checking Terraform/CloudFormation
+> for misconfigurations — public S3 buckets, open security groups) is a
+> different category entirely, out of scope until Phase 8's `tfsec`/
+> `checkov` step, which runs against `infra/` once it exists. Trivy the
+> *tool* can also do IaC scanning as a separate mode, but this project
+> doesn't use it that way — only against built images here.
+
 > **Why not just more SCA?** npm audit/Snyk only see *declared*
 > dependencies (`package-lock.json`). Trivy sees what's actually baked into
 > the image — base OS packages (Debian/Alpine), anything pulled in via
@@ -218,7 +230,24 @@ flowchart LR
 > `app/parsers/trivy.py` were already built and tested in Phase 2 — this
 > phase is CI-workflow wiring only.
 
-- [ ] Workflow: boot Juice Shop in a container, run ZAP baseline scan against it
+- [x] Workflow: boot Juice Shop in a container, run ZAP baseline scan against it
+  - `security-scans.yml`: `docker network create` + Juice Shop container +
+    poll on `localhost:3000`, then `zaproxy/zap-stable zap-baseline.py -t
+    http://juice-shop:3000 -J zap-results.json` on the same network,
+    reached by container name (not `localhost`) — the same pattern
+    `docker-compose.yml` uses in Phase 5.
+  - **Verified locally, not just written:** ran the exact same two-step
+    flow by hand — real `bkimminich/juice-shop:v20.2.0` container, real ZAP
+    baseline scan, no permission errors on the mounted output volume.
+    11 real alerts came back (CSP header missing, cross-domain
+    misconfiguration, timestamp disclosure, etc.), posted through
+    `/ingest`, and confirmed queryable via `GET /findings?source=zap` —
+    correct severity/rule_id/description on every row, not just a
+    non-empty response.
+  - `|| true` on the ZAP step: baseline mode exits non-zero (`2`, here)
+    whenever it finds WARN-level alerts — same reason every other real
+    scanner step in this workflow has it, finding vulnerabilities isn't a
+    CI failure.
 - [ ] Workflow: build `ingestion/` and `dashboard/` images, run Trivy against them
 - [ ] Each job POSTs its raw output to the ingestion API's `/ingest`
 
@@ -262,8 +291,9 @@ flowchart LR
 
 > **Not the same as run history.** This closes *persistence* (the DB
 > survives a restart), not a queryable "how did findings change run to
-> run" — that needs a separate `scan_runs` table, tracked as its own
-> Phase 5 item. Full writeup: `docs/PRD.md`, §5 "Known gap: run history".
+> run" — that needs a separate `scan_runs` table (one row per scan run,
+> snapshotting open-finding counts by severity at that moment), tracked as
+> its own Phase 5 item. Full writeup: `docs/PRD.md`, §5 "Known gap: run history".
 
 **Outcome — the test suite is now a gate, before any scanner runs.**
 Before: `pytest` had no connection to CI at all — `ingestion/tests/`
@@ -399,9 +429,12 @@ remote yet.
         never colors the text itself.
   - [ ] Open-vs-fixed trend — deferred, not just unbuilt: it needs
         history across multiple scans, which needs the `scan_runs` table
-        gap already flagged in Phase 3 (per-finding `first_seen`/
-        `last_seen` isn't the same as a queryable run history). Building
-        this now would mean faking the data it's supposed to show.
+        (one row per scan run, snapshotting open-finding counts by
+        severity at that moment) gap already flagged in Phase 3
+        (per-finding `first_seen`/`last_seen` isn't the same as a
+        queryable run history). The table itself now exists (Phase 5) —
+        this item is now just the dashboard chart reading it, not blocked
+        on missing data anymore.
 - [x] Landing page (`src/app/page.tsx`) pulling real data from
       `getFindings({status: "open"})` and `getStats()`.
   - **Verified, not just built:** local ingestion API seeded with the
@@ -506,12 +539,19 @@ flowchart LR
       network removed) then `docker compose up -d` (brand new containers),
       and `/stats` still showed the same finding — the volume actually
       works, proven end-to-end.
-- [ ] `scan_runs` table (ingestion schema) — one row per scan run
-      (timestamp, repo/branch/commit, per-severity counts at that point),
-      distinct from `Finding`'s per-row `first_seen`/`last_seen`. Needs the
-      volume-backed DB above to be worth building (no point tracking run
-      history that a container restart wipes). Unblocks Phase 4's deferred
-      open-vs-fixed trend.
+- [x] `scan_runs` table (`ingestion/app/models.py`'s `ScanRun`) — one row
+      per scan run (timestamp, repo/branch/commit, per-severity counts at
+      that point), distinct from `Finding`'s per-row `first_seen`/
+      `last_seen`: answers "how did the count change over time," which
+      per-finding rows can't. `POST /scan-runs` computes and records a
+      snapshot from current open findings (never trusts counts from the
+      caller, so a row can't drift from `/findings`); `GET /scan-runs`
+      lists them oldest-first. Verified against the real compose stack:
+      seeded findings, recorded two snapshots, confirmed `total_open`
+      moved 1 → 3 and `critical` moved 0 → 1 across them — real trend
+      data, not just a table that exists unused. Unblocks Phase 4's
+      deferred open-vs-fixed trend chart (the chart itself still isn't
+      built — this is the data it would read).
 - [ ] `README.md` — one-command local run instructions
 
 ## Phase 6 — polish

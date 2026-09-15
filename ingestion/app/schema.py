@@ -68,3 +68,15 @@ class IngestRequest(BaseModel):
     branch: str = "main"
     commit_sha: Optional[str] = None
     raw_output: Union[dict, list]
+
+
+class ScanRunRequest(BaseModel):
+    """Payload CI posts to /scan-runs once every scanner for that run has
+    finished ingesting: just the run's identity. Severity counts are *not*
+    part of this payload - the server computes them itself from current
+    open findings for this repo, the same way /stats already does, so a
+    scan_runs row can't drift from what /findings actually shows."""
+
+    repo: str
+    branch: str = "main"
+    commit_sha: Optional[str] = None
