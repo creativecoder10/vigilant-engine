@@ -13,7 +13,7 @@ the hood.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — the overall design: what talks to what, and why
 - [Plan_vigilant_engine.md](Plan_vigilant_engine.md) — phased build checklist, what's done vs. still open
 - [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) — manual STRIDE analysis of Juice Shop, with confirmed findings (BOLA, JWT over-exposure, and more)
-- [../notes/BURP_TESTING_STEPS.md](../../notes/BURP_TESTING_STEPS.md) — live runbook for hands-on Burp Suite testing
+- [docs/BURP_TESTING_STEPS.md](docs/BURP_TESTING_STEPS.md) — live runbook for hands-on Burp Suite testing
 - [docs/vigilant-engine-threat-modeling-plan.pdf](docs/vigilant-engine-threat-modeling-plan.pdf) — the phased threat-modeling plan (STRIDE + Threat Dragon + ATT&CK)
 - [ingestion/README.md](ingestion/README.md) — the backend service itself: code layout, request flow diagrams, how to run it
 - [docs/dashboard-anatomy.html](docs/dashboard-anatomy.html) — the frontend: annotated `dashboard/src/` file tree (Server vs. Client Components) and a request-flow diagram from browser to SQLite

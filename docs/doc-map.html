@@ -237,19 +237,19 @@
   <header>
     <p class="eyebrow">vigilant-engine · document map</p>
     <h1>Where every doc lives, and what points where</h1>
-    <p class="dek">Thirteen files across two folders — the ones that ship with the repo, and the ones that got split out into an external notes folder for interview prep. Every box and every row below is a real link — click through to open the file.</p>
+    <p class="dek">Ten files, all inside this repo. Two of them — the Burp runbook and the STRIDE process notes — used to live in an external notes folder split out for interview prep; both are copied back into docs/ now so every link here actually resolves. Every box and every row below is a real link — click through to open the file.</p>
   </header>
 
   <div class="context">
-    <span class="tag">why two folders</span>
-    <p>Commit <code>f560d08</code> — "Remove docs moved to external notes folder" — pulled the interview-prep and Burp runbook docs out of <code>vigilant-engine/</code> into <code>../notes/</code>, so project docs and rehearsal docs don't ship in the same git history. The links inside the repo have since been repointed at the new location. Note: the <code>../notes/</code> links only resolve on this machine — that folder isn't part of this git repo, so they'll 404 for anyone else who clones it.</p>
+    <span class="tag">one folder again, mostly</span>
+    <p>Commit <code>f560d08</code> pulled interview-prep and testing docs out of <code>vigilant-engine/</code> into an external <code>../notes/</code> folder, on the reasoning that project docs and rehearsal docs shouldn't ship in the same git history — but the resulting links never actually resolved, even on this machine, since the real folder sits at a different relative depth than the links assumed. <code>BURP_TESTING_STEPS.md</code> and <code>STRIDE_METHODOLOGY.md</code> are project-relevant enough — a live testing runbook, a STRIDE process reference — to be worth shipping with the repo, so both are copied back in as <code>docs/</code> files. <code>INTERVIEW_PREP_APPSEC1.md</code>, its companion Q&amp;A doc, and the cross-project Python log stay out — genuinely personal interview-prep content, not project documentation — and every link to them has been removed rather than left broken.</p>
   </div>
 
   <section>
     <h2>The reference graph</h2>
     <p class="section-note">Solid teal = a live link that resolves. Dotted = a companion or data twin, not a hub-and-spoke link. Every box below is clickable.</p>
     <figure class="diagram-card">
-      <svg viewBox="0 0 1040 600" role="img" aria-label="Diagram showing README.md, ARCHITECTURE.md, Plan_vigilant_engine.md, THREAT_MODEL.md, the threat-modeling-plan PDF and ingestion/README.md inside vigilant-engine, connected to INTERVIEW_PREP_APPSEC1.md, its companion Q&amp;A doc, BURP_TESTING_STEPS.md and STRIDE_METHODOLOGY.md inside the external notes folder. All links resolve, including the two crossing from README.md into the notes folder.">
+      <svg viewBox="0 0 1040 600" role="img" aria-label="Diagram showing README.md, ARCHITECTURE.md, Plan_vigilant_engine.md, THREAT_MODEL.md, the threat-modeling-plan PDF and ingestion/README.md, connected to docs/BURP_TESTING_STEPS.md and docs/STRIDE_METHODOLOGY.md. All ten files live inside the repo and every link resolves.">
         <defs>
           <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" />
@@ -259,13 +259,9 @@
           </marker>
         </defs>
 
-        <rect x="20" y="20" width="480" height="560" rx="18" fill="var(--repo-zone)" />
-        <rect x="540" y="20" width="480" height="560" rx="18" fill="var(--notes-zone)" />
+        <rect x="20" y="20" width="1000" height="560" rx="18" fill="var(--repo-zone)" />
         <text x="44" y="46" font-family="IBM Plex Mono, monospace" font-size="12" letter-spacing="0.05em" fill="var(--accent-ink)">VIGILANT-ENGINE/  (repo)</text>
-        <text x="564" y="46" font-family="IBM Plex Mono, monospace" font-size="12" letter-spacing="0.05em" fill="var(--warn)">../NOTES/  (external, moved out)</text>
-
-        <!-- boundary marker -->
-        <line x1="520" y1="30" x2="520" y2="570" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="2 5" />
+        <text x="564" y="46" font-family="IBM Plex Mono, monospace" font-size="12" letter-spacing="0.05em" fill="var(--accent-ink)">docs/  (testing &amp; methodology refs)</text>
 
         <!-- REPO NODES (center x = 260) -->
         <g font-family="IBM Plex Mono, monospace" font-size="12.5">
@@ -301,25 +297,14 @@
           </a>
         </g>
 
-        <!-- NOTES NODES (center x = 780) -->
+        <!-- DOCS/ NODES (center x = 780) -->
         <g font-family="IBM Plex Mono, monospace" font-size="12.5">
-          <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">
-            <rect class="node" x="670" y="70" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5" />
-            <text class="node-label" x="780" y="97" text-anchor="middle" fill="var(--ink)">INTERVIEW_PREP_APPSEC1</text>
-          </a>
-
-          <a href="../../../notes/INTERVIEW_APPSEC_TRIAGE_REMEDIATION.md">
-            <rect class="node" x="670" y="154" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--border)" stroke-width="1.3" />
-            <text class="node-label" x="780" y="176" text-anchor="middle" fill="var(--ink)">INTERVIEW_APPSEC_</text>
-            <text class="node-label" x="780" y="190" text-anchor="middle" fill="var(--ink)">TRIAGE_REMEDIATION</text>
-          </a>
-
-          <a href="../../../notes/BURP_TESTING_STEPS.md">
+          <a href="BURP_TESTING_STEPS.md">
             <rect class="node" x="670" y="322" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5" />
             <text class="node-label" x="780" y="349" text-anchor="middle" fill="var(--ink)">BURP_TESTING_STEPS</text>
           </a>
 
-          <a href="../../../notes/STRIDE_METHODOLOGY.md">
+          <a href="STRIDE_METHODOLOGY.md">
             <rect class="node" x="670" y="406" width="220" height="44" rx="9" fill="var(--surface)" stroke="var(--border)" stroke-width="1.3" />
             <text class="node-label" x="780" y="433" text-anchor="middle" fill="var(--ink)">STRIDE_METHODOLOGY</text>
           </a>
@@ -334,28 +319,18 @@
         <line x1="260" y1="406" x2="260" y2="366" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1 5" marker-end="url(#arrowInk)" />
         <text x="278" y="390" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">plan ↔ findings</text>
 
-        <!-- intra-notes edges -->
-        <path d="M780,198 C780,240 780,260 780,322" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
-        <text x="794" y="260" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">concepts go here</text>
-        <line x1="780" y1="114" x2="780" y2="154" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1 5" marker-end="url(#arrowInk)" />
-        <line x1="780" y1="154" x2="780" y2="114" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="1 5" marker-end="url(#arrowInk)" />
-        <text x="794" y="138" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">companion</text>
-
-        <!-- README -> notes -->
-        <path d="M370,84 C480,84 560,88 670,90" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
-        <text x="510" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)">../notes/INTERVIEW_PREP…</text>
-
+        <!-- README -> docs/BURP_TESTING_STEPS.md -->
         <path d="M370,104 C480,140 560,300 670,336" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
-        <text x="500" y="230" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)" transform="rotate(24 500 230)">../notes/BURP_TESTING…</text>
+        <text x="500" y="230" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)" transform="rotate(24 500 230)">docs/BURP_TESTING_STEPS</text>
 
-        <!-- notes -> repo, crossing boundary, working -->
+        <!-- docs/ cross-references back to THREAT_MODEL.md -->
         <path d="M670,344 C560,344 460,344 370,344" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
         <text x="510" y="332" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)">findings go here</text>
 
         <path d="M670,418 C560,400 460,360 370,336" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arrowAccent)" />
         <text x="470" y="405" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent-ink)" transform="rotate(-10 470 405)">illustrated by</text>
       </svg>
-      <figcaption>The two folders used to be one. <a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> once held two links to the old <code style="font-family:'IBM Plex Mono',monospace">docs/</code> paths for INTERVIEW_PREP_APPSEC1.md and BURP_TESTING_STEPS.md — both now repointed at <code style="font-family:'IBM Plex Mono',monospace">../notes/</code>. The links running the other direction, from the notes side back into <a href="THREAT_MODEL.md">docs/THREAT_MODEL.md</a>, were written after the split and resolved from the start.</figcaption>
+      <figcaption><a href="../README.md">README.md</a> links into <code style="font-family:'IBM Plex Mono',monospace">docs/</code> for <a href="BURP_TESTING_STEPS.md">BURP_TESTING_STEPS.md</a>; the reverse links, from <a href="BURP_TESTING_STEPS.md">BURP_TESTING_STEPS.md</a> and <a href="STRIDE_METHODOLOGY.md">STRIDE_METHODOLOGY.md</a> back into <a href="THREAT_MODEL.md">docs/THREAT_MODEL.md</a>, were written when both still lived in the external notes folder and kept working once the files moved, since they were already relative to <code style="font-family:'IBM Plex Mono',monospace">docs/</code>.</figcaption>
     </figure>
     <div class="legend">
       <span><svg viewBox="0 0 30 12"><line x1="2" y1="6" x2="26" y2="6" stroke="var(--accent)" stroke-width="2"/></svg> live link / reference</span>
@@ -369,8 +344,8 @@
     <p class="section-note">Two loose ends turned up while building this map. Both are fixed now.</p>
     <div class="findings">
       <div class="finding">
-        <h3>Links repointed to ../notes/ <span class="chip">fixed</span></h3>
-        <p><a href="../README.md">README.md</a> and <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a> linked to <code>docs/INTERVIEW_PREP_APPSEC1.md</code> and <code>docs/BURP_TESTING_STEPS.md</code>, paths that stopped existing when commit <code>f560d08</code> moved those files to <code>../notes/</code>. Both now point at the real location. README's stray <code>PLAN.md</code> reference (renamed to <code>Plan_vigilant_engine.md</code> in <code>e23e41d</code>) got the same fix.</p>
+        <h3>../notes/ links never actually resolved <span class="chip">fixed</span></h3>
+        <p>The <code>../notes/</code> paths added after commit <code>f560d08</code> assumed the external notes folder sat one level above the repo — it actually sits two levels up, under a differently-named directory, so every one of those links 404'd even on the machine that wrote them. <a href="BURP_TESTING_STEPS.md">BURP_TESTING_STEPS.md</a> and <a href="STRIDE_METHODOLOGY.md">STRIDE_METHODOLOGY.md</a> are copied back into <code>docs/</code> so <a href="../README.md">README.md</a>, <a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a>, and this page all resolve again. The three interview-prep-only docs stay external — their links have been removed rather than fixed.</p>
       </div>
       <div class="finding">
         <h3>Duplicate JSON merged <span class="chip">fixed</span></h3>
@@ -381,7 +356,7 @@
 
   <section>
     <h2>Every document, in full</h2>
-    <p class="section-note">Same 13 files as the diagram, plus the three that were left out of it for clarity: the architecture diagram's HTML export, the threat-model JSON twin, and the cross-project Python log.</p>
+    <p class="section-note">Same eight files as the diagram, plus the two that were left out of it for clarity: the architecture diagram's HTML export and the threat-model JSON twin.</p>
     <div class="table-wrap">
       <table>
         <thead>
@@ -392,7 +367,7 @@
           <tr>
             <td class="doc"><a href="../README.md">README.md</a></td>
             <td class="role">Entry point — links out to every doc below</td>
-            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE</a>, <a href="../Plan_vigilant_engine.md">Plan</a>, <a href="THREAT_MODEL.md">THREAT_MODEL</a>, <a href="../ingestion/README.md">ingestion/README</a>, <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">../notes/INTERVIEW_PREP_APPSEC1</a>, <a href="../../../notes/BURP_TESTING_STEPS.md">../notes/BURP_TESTING_STEPS</a></td>
+            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE</a>, <a href="../Plan_vigilant_engine.md">Plan</a>, <a href="THREAT_MODEL.md">THREAT_MODEL</a>, <a href="../ingestion/README.md">ingestion/README</a>, <a href="BURP_TESTING_STEPS.md">BURP_TESTING_STEPS</a></td>
           </tr>
           <tr>
             <td class="doc"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a></td>
@@ -402,7 +377,7 @@
           <tr>
             <td class="doc"><a href="../Plan_vigilant_engine.md">Plan_vigilant_engine.md</a></td>
             <td class="role">Phased build checklist, what's done vs. still open</td>
-            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a>, <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">../notes/INTERVIEW_PREP_APPSEC1</a>, <a href="../../../notes/BURP_TESTING_STEPS.md">../notes/BURP_TESTING_STEPS</a></td>
+            <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a>, <a href="BURP_TESTING_STEPS.md">BURP_TESTING_STEPS</a>, <a href="STRIDE_METHODOLOGY.md">STRIDE_METHODOLOGY</a></td>
           </tr>
           <tr>
             <td class="doc"><a href="THREAT_MODEL.md">docs/THREAT_MODEL.md</a></td>
@@ -429,38 +404,22 @@
             <td class="role">The FastAPI service itself: file layout, request flow, how to run it</td>
             <td class="role"><a href="../ARCHITECTURE.md">ARCHITECTURE.md</a></td>
           </tr>
-          <tr class="folder-row"><td colspan="3">../notes/ — external, split out for interview prep</td></tr>
           <tr>
-            <td class="doc"><a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">INTERVIEW_PREP_APPSEC1.md</a></td>
-            <td class="role">Main interview doc — what the project demonstrates, how to talk about it</td>
-            <td class="role"><a href="../../../notes/INTERVIEW_APPSEC_TRIAGE_REMEDIATION.md">INTERVIEW_APPSEC_TRIAGE_REMEDIATION.md</a> (companion)</td>
-          </tr>
-          <tr>
-            <td class="doc"><a href="../../../notes/INTERVIEW_APPSEC_TRIAGE_REMEDIATION.md">INTERVIEW_APPSEC_TRIAGE_REMEDIATION.md</a></td>
-            <td class="role">Companion Q&A: 10 offensive-security concepts behind triage/remediation</td>
-            <td class="role"><a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">INTERVIEW_PREP_APPSEC1.md</a> (companion)</td>
-          </tr>
-          <tr>
-            <td class="doc"><a href="../../../notes/BURP_TESTING_STEPS.md">BURP_TESTING_STEPS.md</a></td>
+            <td class="doc"><a href="BURP_TESTING_STEPS.md">BURP_TESTING_STEPS.md</a></td>
             <td class="role">Live runbook — the step list for the current hands-on Burp session</td>
-            <td class="role"><a href="THREAT_MODEL.md">THREAT_MODEL.md</a> (findings), <a href="../../../notes/INTERVIEW_PREP_APPSEC1.md">INTERVIEW_PREP_APPSEC1.md</a> (concepts)</td>
+            <td class="role"><a href="THREAT_MODEL.md">THREAT_MODEL.md</a> (findings)</td>
           </tr>
           <tr>
-            <td class="doc"><a href="../../../notes/STRIDE_METHODOLOGY.md">STRIDE_METHODOLOGY.md</a></td>
+            <td class="doc"><a href="STRIDE_METHODOLOGY.md">STRIDE_METHODOLOGY.md</a></td>
             <td class="role">STRIDE process notes — what to test per category, not just definitions</td>
             <td class="role"><a href="THREAT_MODEL.md">THREAT_MODEL.md</a> (illustrated by its confirmed findings)</td>
-          </tr>
-          <tr>
-            <td class="doc"><a href="../../../notes/PYTHON_INTERVIEW_QA.md">PYTHON_INTERVIEW_QA.md</a></td>
-            <td class="role">Cross-project Python Q&A log — not vigilant-engine-specific</td>
-            <td class="role"><a href="../ingestion/app/schema.py">ingestion/app/schema.py</a> (source of one entry)</td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <footer>13 files across 2 folders · mapped from the working tree on 2026-09-10 · repo is on <code>main</code>, clean</footer>
+  <footer>10 files, one folder · updated 2026-09-15 — BURP_TESTING_STEPS.md and STRIDE_METHODOLOGY.md moved back into docs/, interview-prep-only doc links removed · repo is on <code>main</code></footer>
 </main>
 </body>
 </html>

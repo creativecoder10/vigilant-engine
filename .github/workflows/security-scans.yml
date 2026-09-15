@@ -110,6 +110,25 @@ jobs:
       - name: Ingest gitleaks results
         run: python3 .github/scripts/post_to_ingestion.py --source gitleaks --file gitleaks-results.json
 
+      # ---------- OWASP ZAP baseline scan (DAST) ----------
+      - name: Start Juice Shop container
+        run: |
+          docker network create zap-net
+          docker run -d --name juice-shop --network zap-net -p 3000:3000 bkimminich/juice-shop:v20.2.0
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000 > /dev/null && exit 0
+            sleep 2
+          done
+          echo "Juice Shop container never came up:"; docker logs juice-shop; exit 1
+
+      - name: Run ZAP baseline scan
+        run: |
+          docker run --rm --network zap-net -v $(pwd):/zap/wrk/:rw \
+            zaproxy/zap-stable zap-baseline.py -t http://juice-shop:3000 -J zap-results.json || true
+
+      - name: Ingest ZAP results
+        run: python3 .github/scripts/post_to_ingestion.py --source zap --file zap-results.json
+
       - name: Upload raw scanner output
         if: always()
         uses: actions/upload-artifact@v4
@@ -120,6 +139,7 @@ jobs:
             npm-audit-results.json
             snyk-results.json
             gitleaks-results.json
+            zap-results.json
           if-no-files-found: ignore
 
       - name: Show resulting stats and write run summary
