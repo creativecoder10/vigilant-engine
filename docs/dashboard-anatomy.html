@@ -1,0 +1,491 @@
+<title>Dashboard App Anatomy</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#eef1ee;
+    --surface:#ffffff;
+    --surface-2:#f5f7f4;
+    --border:#d7ddd8;
+    --ink:#14181a;
+    --ink-secondary:#48534d;
+    --ink-muted:#7a887f;
+
+    --server:#2a5aa0;
+    --server-soft:#e5edf8;
+    --client:#a66b12;
+    --client-soft:#f6ecd8;
+    --data:#6a5a92;
+    --data-soft:#ece7f4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#10141a;
+      --surface:#171c22;
+      --surface-2:#1c222a;
+      --border:#2b333b;
+      --ink:#eef1f0;
+      --ink-secondary:#b6c0c6;
+      --ink-muted:#7e8a90;
+
+      --server:#6fa4e6;
+      --server-soft:#1b2a3d;
+      --client:#dfa544;
+      --client-soft:#3a2d16;
+      --data:#b3a1dc;
+      --data-soft:#2a2440;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#10141a;
+    --surface:#171c22;
+    --surface-2:#1c222a;
+    --border:#2b333b;
+    --ink:#eef1f0;
+    --ink-secondary:#b6c0c6;
+    --ink-muted:#7e8a90;
+
+    --server:#6fa4e6;
+    --server-soft:#1b2a3d;
+    --client:#dfa544;
+    --client-soft:#3a2d16;
+    --data:#b3a1dc;
+    --data-soft:#2a2440;
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--ground);color:var(--ink);}
+  .page{
+    max-width:920px;
+    margin:0 auto;
+    padding:3rem 1.5rem 4rem;
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+  code, .mono{ font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace; }
+
+  .eyebrow{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.75rem;
+    letter-spacing:0.09em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    margin:0 0 0.6rem;
+  }
+  h1{
+    font-size:1.9rem;
+    line-height:1.15;
+    margin:0 0 0.6rem;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    max-width:62ch;
+    color:var(--ink-secondary);
+    font-size:0.98rem;
+    line-height:1.6;
+    margin:0;
+  }
+  .lede code{ font-size:0.88em; background:var(--surface-2); padding:0.05em 0.35em; border-radius:4px; }
+
+  header.masthead{
+    padding-bottom:1.75rem;
+    border-bottom:1px solid var(--border);
+    margin-bottom:2rem;
+  }
+
+  /* legend */
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0.6rem;
+    margin:0 0 2.25rem;
+  }
+  .legend .chip{
+    display:flex;
+    align-items:center;
+    gap:0.5rem;
+    padding:0.5rem 0.8rem;
+    border-radius:8px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    font-size:0.82rem;
+  }
+  .legend .swatch{
+    width:0.65rem;height:0.65rem;border-radius:2px;flex:none;
+  }
+  .legend .chip b{ font-weight:600; }
+  .legend .chip span.desc{ color:var(--ink-muted); }
+
+  h2.section-title{
+    font-size:0.78rem;
+    font-family:"IBM Plex Mono", monospace;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-muted);
+    margin:0 0 1.1rem;
+  }
+
+  section.block{ margin-bottom:2.75rem; }
+
+  /* tree */
+  .root-row{
+    display:flex; align-items:baseline; gap:0.5rem;
+    margin-bottom:1.1rem;
+  }
+  .root-row code{ font-size:1rem; font-weight:600; }
+  .root-row .hint{ color:var(--ink-muted); font-size:0.82rem; }
+
+  .group{ margin-bottom:1.5rem; }
+  .group:last-child{ margin-bottom:0; }
+  .group-label{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.85rem;
+    color:var(--ink-secondary);
+    margin:0 0 0.75rem;
+  }
+  .group-label .note{ color:var(--ink-muted); font-family:"IBM Plex Sans",sans-serif; font-size:0.78rem; }
+
+  .branch{
+    margin-left:0.7rem;
+    padding-left:1.35rem;
+    border-left:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    gap:0.85rem;
+  }
+  .row{
+    position:relative;
+    display:grid;
+    grid-template-columns:230px 1fr;
+    gap:1.1rem;
+    align-items:start;
+  }
+  .row::before{
+    content:"";
+    position:absolute;
+    left:-1.35rem;
+    top:1rem;
+    width:1.05rem;
+    height:1px;
+    background:var(--border);
+  }
+  .name{
+    padding:0.55rem 0.7rem;
+    border-left:3px solid var(--role);
+    background:var(--role-soft);
+    border-radius:0 7px 7px 0;
+  }
+  .name code{ font-weight:600; font-size:0.88rem; display:block; }
+  .name .tag{
+    display:block;
+    margin-top:0.2rem;
+    font-size:0.65rem;
+    font-family:"IBM Plex Mono", monospace;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--role);
+  }
+  .note{
+    color:var(--ink-secondary);
+    font-size:0.88rem;
+    line-height:1.55;
+    padding-top:0.3rem;
+  }
+  .note code{ font-size:0.85em; background:var(--surface-2); padding:0.05em 0.3em; border-radius:4px; }
+
+  .role-server{ --role:var(--server); --role-soft:var(--server-soft); }
+  .role-client{ --role:var(--client); --role-soft:var(--client-soft); }
+  .role-data{ --role:var(--data); --role-soft:var(--data-soft); }
+  .role-neutral{ --role:var(--ink-muted); --role-soft:var(--surface-2); }
+
+  @media (max-width:680px){
+    .row{ grid-template-columns:1fr; }
+    .note{ padding-top:0; }
+  }
+
+  /* flow figure */
+  figure.diagram{
+    margin:0;
+    padding:1.4rem 1.2rem 1.1rem;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+  }
+  figure.diagram svg{
+    width:100%;
+    height:auto;
+    display:block;
+    overflow:visible;
+    font-family:"IBM Plex Mono", monospace;
+  }
+  figcaption{
+    margin-top:0.9rem;
+    font-size:0.85rem;
+    color:var(--ink-muted);
+    line-height:1.55;
+    max-width:68ch;
+  }
+  figcaption b{ color:var(--ink-secondary); font-weight:600; }
+
+  .callout{
+    margin-top:2.75rem;
+    padding:1rem 1.15rem;
+    border:1px dashed var(--border);
+    border-radius:10px;
+    background:var(--surface);
+    font-size:0.85rem;
+    color:var(--ink-secondary);
+    line-height:1.6;
+  }
+  .callout .eyebrow{ margin-bottom:0.4rem; }
+  .callout code{ background:var(--surface-2); padding:0.05em 0.3em; border-radius:4px; font-size:0.85em; }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">vigilant-engine · phase 4</p>
+    <h1>Dashboard app anatomy</h1>
+    <p class="lede">
+      How <code>dashboard/</code> is put together: a Next.js 15 App Router app
+      with no client-side data fetching at all — every finding and stat is
+      pulled server-side from the ingestion API before a byte of HTML ships.
+    </p>
+  </header>
+
+  <div class="legend" role="list" aria-label="Color legend for component roles">
+    <div class="chip" role="listitem">
+      <span class="swatch" style="background:var(--server)"></span>
+      <b>Server Component</b><span class="desc">&nbsp;— renders on the server, never bundled to the browser</span>
+    </div>
+    <div class="chip" role="listitem">
+      <span class="swatch" style="background:var(--client)"></span>
+      <b>Client Component</b><span class="desc">&nbsp;— <code>"use client"</code>, ships JS, handles clicks</span>
+    </div>
+    <div class="chip" role="listitem">
+      <span class="swatch" style="background:var(--data)"></span>
+      <b>Not a component</b><span class="desc">&nbsp;— types, constants, or an external service</span>
+    </div>
+  </div>
+
+  <section class="block">
+    <h2 class="section-title">File tree — src/</h2>
+
+    <div class="root-row">
+      <code class="mono">dashboard/src/</code>
+      <span class="hint">App Router + TypeScript + Tailwind, scaffolded via create-next-app</span>
+    </div>
+
+    <div class="group">
+      <p class="group-label"><code>app/</code> <span class="note">— the one route this app has: <code>/</code></span></p>
+      <div class="branch">
+        <div class="row">
+          <div class="name role-server">
+            <code>layout.tsx</code>
+            <span class="tag">Server Component</span>
+          </div>
+          <p class="note">
+            Root shell every route renders inside. Loads Geist Sans/Mono via
+            <code>next/font/google</code>, sets <code>&lt;html&gt;</code>/<code>&lt;body&gt;</code>,
+            and exports the page's <code>&lt;title&gt;</code>/description metadata.
+          </p>
+        </div>
+        <div class="row">
+          <div class="name role-server">
+            <code>page.tsx</code>
+            <span class="tag">Server Component, async</span>
+          </div>
+          <p class="note">
+            <code>DashboardPage</code>. Awaits <code>searchParams</code> for <code>?severity=</code>,
+            then fires <code>getStats()</code> and <code>getFindings({'{'}status:"open"{'}'})</code>
+            through <code>Promise.all</code> — two real network calls, run concurrently, before any
+            HTML is sent to the browser.
+          </p>
+        </div>
+        <div class="row">
+          <div class="name role-neutral">
+            <code>globals.css</code>
+            <span class="tag">Tailwind + tokens</span>
+          </div>
+          <p class="note">
+            Tailwind base plus the CSS custom properties (<code>--surface</code>,
+            <code>--status-critical</code>, <code>--cat-1-blue</code> …) every component reads
+            through <code>style={'{'}{'{'}...{'}'}{'}'}</code> instead of hard-coded hex — light/dark
+            just swaps the token values underneath.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="group-label"><code>components/</code> <span class="note">— only one of these three is interactive</span></p>
+      <div class="branch">
+        <div class="row">
+          <div class="name role-client">
+            <code>SeverityStats.tsx</code>
+            <span class="tag">Client Component</span>
+          </div>
+          <p class="note">
+            The one <code>"use client"</code> file in the app. Its tiles double as the
+            severity filter: <code>onClick</code> calls <code>router.push</code> with an
+            updated <code>?severity=</code>, which <code>page.tsx</code> reads back on the
+            <em>next</em> server render — no array filtering happens in the browser.
+          </p>
+        </div>
+        <div class="row">
+          <div class="name role-server">
+            <code>SourceBreakdown.tsx</code>
+            <span class="tag">Server Component</span>
+          </div>
+          <p class="note">
+            Pure render of <code>stats.by_source</code> into one bar per scanner. No
+            state and no clicks, so it never needed <code>"use client"</code> in the
+            first place.
+          </p>
+        </div>
+        <div class="row">
+          <div class="name role-server">
+            <code>FindingsTable.tsx</code>
+            <span class="tag">Server Component</span>
+          </div>
+          <p class="note">
+            Renders the <code>findings</code> array it's handed as a prop. The actual
+            filtering already happened server-side, inside the
+            <code>/findings?severity=</code> request — this component never sees the
+            unfiltered set.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="group-label"><code>lib/</code> <span class="note">— server-only, no components here</span></p>
+      <div class="branch">
+        <div class="row">
+          <div class="name role-server">
+            <code>api.ts</code>
+            <span class="tag">server-only module</span>
+          </div>
+          <p class="note">
+            <code>getFindings</code> / <code>getStats</code>. <code>INGESTION_API_URL</code>
+            deliberately has no <code>NEXT_PUBLIC_</code> prefix, so it's never bundled
+            to the browser. Every <code>fetch()</code> is tagged
+            <code>next: {'{'}revalidate: 60{'}'}</code> — findings change per CI run, not
+            per page load, so Next.js caches the response instead of refetching
+            on every request.
+          </p>
+        </div>
+        <div class="row">
+          <div class="name role-data">
+            <code>colors.ts</code>
+            <span class="tag">shared constants</span>
+          </div>
+          <p class="note">
+            The single source of truth for two fixed palettes: <code>SEVERITY_COLOR</code>
+            (the status ramp — critical/serious/warning/good; <code>info</code> falls
+            back to muted ink) and <code>SOURCE_COLOR</code> (a 6-slot categorical ramp,
+            one hue per scanner, order fixed so a scanner keeps its color across filters).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="group-label"><code>types/</code></p>
+      <div class="branch">
+        <div class="row">
+          <div class="name role-data">
+            <code>finding.ts</code>
+            <span class="tag">shared types</span>
+          </div>
+          <p class="note">
+            Hand-kept mirror of <code>ingestion/app/schema.py</code> +
+            <code>models.py</code> (<code>Finding</code>, <code>Severity</code>,
+            <code>Source</code>, <code>FindingStatus</code>, <code>Stats</code>).
+            One shape, two languages, no codegen — kept in sync by hand.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2 class="section-title">One request, start to finish</h2>
+    <figure class="diagram">
+      <svg viewBox="0 0 920 300" role="img" aria-label="A browser request for the dashboard passes through page.tsx, then api.ts, then the ingestion API and its SQLite database, and returns as rendered HTML; a separate loop shows clicking a severity tile issuing a new request with an updated query string.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+          <marker id="arrowClient" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--client)"/>
+          </marker>
+        </defs>
+
+        <!-- client loop: tile click -> new request -->
+        <path d="M 90 118 C 90 40, 300 40, 300 118" fill="none" stroke="var(--client)" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#arrowClient)"/>
+        <text x="196" y="34" text-anchor="middle" font-size="11.5" fill="var(--client)">click severity tile → router.push("?severity=…")</text>
+
+        <!-- main chain -->
+        <g stroke="currentColor" fill="none">
+          <line x1="160" y1="150" x2="205" y2="150" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <line x1="375" y1="150" x2="415" y2="150" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <line x1="560" y1="150" x2="600" y2="150" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <line x1="785" y1="150" x2="820" y2="150" stroke-width="1.6" marker-end="url(#arrow)"/>
+        </g>
+
+        <text x="182" y="140" text-anchor="middle" font-size="11">GET /</text>
+        <text x="395" y="140" text-anchor="middle" font-size="11">Promise.all</text>
+        <text x="580" y="140" text-anchor="middle" font-size="10.5">fetch /stats</text>
+        <text x="580" y="163" text-anchor="middle" font-size="10.5">fetch /findings?severity=</text>
+        <text x="802" y="140" text-anchor="middle" font-size="10.5">SQL</text>
+
+        <!-- nodes -->
+        <rect x="20" y="120" width="140" height="60" rx="8" fill="var(--surface-2)" stroke="var(--ink-muted)" stroke-width="1.3"/>
+        <text x="90" y="146" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Browser</text>
+        <text x="90" y="163" text-anchor="middle" font-size="10" fill="var(--ink-muted)">renders HTML</text>
+
+        <rect x="205" y="120" width="170" height="60" rx="8" fill="var(--server-soft)" stroke="var(--server)" stroke-width="1.3"/>
+        <text x="290" y="144" text-anchor="middle" font-size="12" font-weight="600" fill="var(--server)">page.tsx</text>
+        <text x="290" y="161" text-anchor="middle" font-size="10" fill="var(--server)">Server Component</text>
+
+        <rect x="415" y="120" width="145" height="60" rx="8" fill="var(--server-soft)" stroke="var(--server)" stroke-width="1.3" stroke-dasharray="5 3"/>
+        <text x="487" y="144" text-anchor="middle" font-size="12" font-weight="600" fill="var(--server)">api.ts</text>
+        <text x="487" y="161" text-anchor="middle" font-size="10" fill="var(--server)">revalidate: 60s</text>
+
+        <rect x="600" y="112" width="185" height="76" rx="8" fill="var(--data-soft)" stroke="var(--data)" stroke-width="1.3"/>
+        <text x="692" y="140" text-anchor="middle" font-size="12" font-weight="600" fill="var(--data)">ingestion API</text>
+        <text x="692" y="157" text-anchor="middle" font-size="10" fill="var(--data)">FastAPI · :8000</text>
+        <text x="692" y="174" text-anchor="middle" font-size="9.5" fill="var(--data)">(separate service, Phase 2)</text>
+
+        <rect x="820" y="120" width="80" height="60" rx="8" fill="var(--data-soft)" stroke="var(--data)" stroke-width="1.3"/>
+        <text x="860" y="146" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--data)">SQLite</text>
+        <text x="860" y="163" text-anchor="middle" font-size="9.5" fill="var(--data)">findings.db</text>
+
+        <!-- return path -->
+        <path d="M 692 188 C 692 250, 90 250, 90 182" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+        <text x="391" y="266" text-anchor="middle" font-size="11" fill="var(--ink-muted)">rows → rendered HTML (one response, no client-side loading state)</text>
+      </svg>
+      <figcaption>
+        Every open of <code>/</code> is server-rendered: <b>page.tsx</b> fetches
+        both endpoints concurrently through <b>api.ts</b>, which the ingestion
+        API answers from SQLite. The only client-side moment in the whole page
+        is <b>SeverityStats</b> pushing a new <code>?severity=</code> query
+        string — which just triggers this exact same request again, with a
+        different filter attached.
+      </figcaption>
+    </figure>
+  </section>
+
+  <div class="callout">
+    <p class="eyebrow">scope note</p>
+    Source: <code>Plan_vigilant_engine.md</code>, Phase 4. The ingestion API
+    itself (parsers, <code>/findings</code>, <code>/stats</code>, the SQLite
+    schema) is Phase 2/3 and not re-drawn here. <code>dashboard/Dockerfile</code>
+    and the root <code>docker-compose.yml</code> that wires this container to
+    <code>ingestion</code> by service name belong to Phase 5, and the
+    open-vs-fixed trend chart is deferred until the Phase 5
+    <code>scan_runs</code> table exists.
+  </div>
+
+</div>
