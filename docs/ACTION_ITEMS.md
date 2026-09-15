@@ -20,13 +20,7 @@ former employer" into genuine hands-on CLI/SCA-scanning experience —
 worth doing for the interview-framing upgrade alone, scope stated
 precisely in that doc rather than rounded up.
 
-## 2. Dashboard screenshot for the README / portfolio writeup
-
-Still open on the Phase 6 checklist. A real screenshot now exists to use
-(seeded with real CI findings, verified in both light and dark mode) —
-this is just capturing and placing it, not new build work.
-
-## 3. Cross-check the two threat-model files
+## 2. Cross-check the two threat-model files
 
 `demo-target/threat-model.json` (Juice Shop's own official OWASP Threat
 Dragon model, shipped by the real maintainers as part of the pinned
@@ -38,7 +32,7 @@ boundaries and 10 confirmed findings attached). Optional: read through
 the official one for any data flow or trust boundary this project's
 rebuild missed.
 
-## 4. Personal review items — not code changes
+## 3. Personal review items — not code changes
 
 These aren't things anyone can do except you, which is exactly why they
 belong on this list rather than a code checklist:

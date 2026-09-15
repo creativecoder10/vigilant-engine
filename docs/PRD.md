@@ -1,6 +1,6 @@
 # PRD — vigilant-engine: AppSec Findings Pipeline & Dashboard
 
-**Status:** Phases 1–5 shipped. Phases 6–8 not started.
+**Status:** Phases 1–6 shipped. Phases 7–8 not started.
 **Owner:** Deepesh Dang
 **Last updated:** 2026-09-15
 

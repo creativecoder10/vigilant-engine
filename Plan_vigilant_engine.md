@@ -697,18 +697,29 @@ flowchart LR
 
 ### 6.3 Screenshot capture
 
-- [ ] Dashboard home, unfiltered — light mode
-- [ ] Dashboard home, unfiltered — dark mode
-- [ ] One severity filter applied (e.g. Critical tile clicked) — shows the
+- [x] Dashboard home, unfiltered — light mode
+- [x] Dashboard home, unfiltered — dark mode
+- [x] One severity filter applied (e.g. Critical tile clicked) — shows the
       filter is a real query, not just a static layout
-- [ ] Saved under `docs/screenshots/`
+- [x] Saved under `docs/screenshots/`
+  - **Verified 2026-09-15:** captured with Playwright (viewport shots, not
+        full-page — the full-page version was technically correct but
+        ~8300px tall with all 785 rows, unusable for a README). Caught one
+        real bug in this step: the very first screenshot came back showing
+        `0` findings — the dashboard's page-level ISR (`revalidate: 60` in
+        `src/lib/api.ts`) had statically generated the page at Docker build
+        time, before the ingestion API had any data, and was still serving
+        that stale render. A second request past the 60s window triggered
+        revalidation; re-shot after confirming `785` was embedded in the
+        HTML response. `docs/screenshots/dashboard-{light,dark}.png`,
+        `dashboard-filtered-critical.png`.
 
 ### 6.4 Close the loop in docs
 
-- [ ] Embed the screenshot(s) in `README.md` (currently text-only —
+- [x] Embed the screenshot(s) in `README.md` (currently text-only —
       no visual of the dashboard exists there yet)
-- [ ] Check off this phase in this file
-- [ ] Resolve [docs/ACTION_ITEMS.md](docs/ACTION_ITEMS.md) item 2 (dashboard
+- [x] Check off this phase in this file
+- [x] Resolve [docs/ACTION_ITEMS.md](docs/ACTION_ITEMS.md) item 2 (dashboard
       screenshot) — superseded once this ships
 
 ## Phase 7 — AWS deployment via Terraform (basic IaC, public demo)

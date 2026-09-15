@@ -8,6 +8,24 @@ and shows it all on a dashboard.
 Built as a hands-on way to learn how tools like this actually work under
 the hood.
 
+## Dashboard
+
+785 real findings — semgrep, npm audit, gitleaks, ZAP, and Trivy run
+against Juice Shop and this project's own built images, normalized into
+one schema and persisted in the `docker compose` stack's volume-backed DB.
+
+<table>
+<tr>
+<td><img src="docs/screenshots/dashboard-light.png" alt="Dashboard, light mode" width="500"></td>
+<td><img src="docs/screenshots/dashboard-dark.png" alt="Dashboard, dark mode" width="500"></td>
+</tr>
+</table>
+
+Clicking a severity tile filters server-side, not just in the browser —
+`?severity=critical` re-runs the real `/findings` query:
+
+<img src="docs/screenshots/dashboard-filtered-critical.png" alt="Dashboard filtered to critical findings" width="500">
+
 ## Start here
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — the overall design: what talks to what, and why
