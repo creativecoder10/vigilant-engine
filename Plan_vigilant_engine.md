@@ -341,7 +341,7 @@ A: Yes for Semgrep/gitleaks — no Node.js involved. But `npm audit` and
 Snyk are themselves npm-ecosystem tools, so neither runs at all without
 Node.js, regardless of what they're scanning. None of this is dynamic
 scanning either — Juice Shop is never started as a live app in this
-workflow; that's ZAP's job, a separate, not-yet-built workflow.
+workflow; that's ZAP's job, added as its own separate step further below.
 
 ```mermaid
 flowchart LR

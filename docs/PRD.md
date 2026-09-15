@@ -61,15 +61,16 @@ states the *requirement* each phase satisfies and whether it shipped.
 | API surface | `POST /ingest`, `GET /findings` (filterable), `GET /stats` (aggregate counts by severity/source) — all built and tested |
 | Correctness must be provable before wiring into CI | Full test suite (`ingestion/tests/`: `test_parsers.py`, `test_api.py`), plus one manual validation against Juice Shop's real `npm audit` output |
 
-### 4.3 CI pipeline (`.github/workflows/`) — **shipped for 4 of 6 scanners**
+### 4.3 CI pipeline (`.github/workflows/`) — **shipped for 5 of 6 scanners**
 
 | Requirement | Decision |
 | --- | --- |
 | Run real scanners against real source, in CI, not just locally | Semgrep (SAST), npm audit (SCA), Snyk (SCA, gated behind `SNYK_TOKEN`), gitleaks (secrets) — `security-scans.yml` |
+| Run a scanner against the *running* app, not just its source | OWASP ZAP (DAST) — boots a real `bkimminich/juice-shop:v20.2.0` container in the CI job, runs `zap-baseline.py` against it over a Docker network (container name, not `localhost` — same pattern `docker-compose.yml` uses in Phase 5), ingests the results. **Verified locally before trusting the CI run:** 11 real alerts (missing CSP header, cross-domain misconfiguration, timestamp disclosure, etc.), correct severity/rule_id/description on every row via `GET /findings?source=zap` |
 | Test suite must gate the pipeline | `pytest` (with `--junitxml` report) runs first, no `|| true`; a broken parser fails the job before any scanner runs |
 | Every run's evidence must survive the runner's ephemeral disk | Test report, raw per-scanner JSON, and an ingestion count/summary are all uploaded as run artifacts (`if: always()`) |
-| Verified against a real run, not just "should work" | [Run 34469209245](https://github.com/creativecoder10/vigilant-engine/actions/runs/34469209245) — 180 real findings ingested (75 critical / 37 high / 61 medium / 5 low / 2 info) |
-| Not yet built | OWASP ZAP (DAST, needs a running Juice Shop instance in CI) and Trivy (container scanning of `ingestion`/`dashboard` images) — deferred to when Phase 5's Docker images exist |
+| Verified against a real run, not just "should work" | [Run 34469209245](https://github.com/creativecoder10/vigilant-engine/actions/runs/34469209245) — 180 real findings ingested (75 critical / 37 high / 61 medium / 5 low / 2 info), before ZAP was added |
+| Not yet built | Trivy (container scanning of `ingestion`/`dashboard` images) — was deferred until Phase 5's Docker images existed; they now do (§4.5), so this is next |
 
 ### 4.4 Dashboard (`dashboard/`) — **shipped**
 
