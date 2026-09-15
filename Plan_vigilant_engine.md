@@ -561,6 +561,18 @@ flowchart LR
       proving the volume-vs-`-v` distinction documented there is accurate,
       not just asserted.
 
+**Optional — parking lot, not yet decided, revisit later.** See
+[docs/ACTION_ITEMS.md](docs/ACTION_ITEMS.md) for the reasoning behind
+each. Not scheduled into this or any phase; recorded so it isn't lost:
+
+- [ ] Real Snyk integration (create an account, add `SNYK_TOKEN` as a
+      GitHub Actions secret) — optional, but directly upgrades "adjacent
+      Snyk exposure" to genuine hands-on CLI/SCA experience for interview
+      framing.
+- [ ] Cross-check `docs/juice-shop-threat-model.json` (this project's
+      rebuild) against `demo-target/threat-model.json` (Juice Shop's own
+      official model) for anything missed.
+
 ## Phase 6 — polish
 
 - [ ] Run the full pipeline once end-to-end, seed real findings
