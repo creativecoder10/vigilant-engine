@@ -1,0 +1,509 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>Vigilant Engine PRD</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#f4f5f2;
+    --surface:#ffffff;
+    --surface-2:#eceee9;
+    --ink:#1c232b;
+    --ink-muted:#5c6570;
+    --ink-faint:#8a919b;
+    --border:#d8dad4;
+    --accent:#2f6f6b;
+    --accent-ink:#194542;
+    --accent-soft:#e2eeec;
+    --shipped:#2f7d4f;
+    --shipped-soft:#e4f2e8;
+    --partial:#a06a12;
+    --partial-soft:#f7ecd8;
+    --deferred:#8a5cc4;
+    --deferred-soft:#efe7fa;
+    --notstarted:#8a919b;
+    --notstarted-soft:#eceee9;
+    --code-bg:#eef0ec;
+    --link:#215955;
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12161a;
+      --surface:#1a1f24;
+      --surface-2:#20262c;
+      --ink:#e7e9ea;
+      --ink-muted:#a3abb3;
+      --ink-faint:#6d757d;
+      --border:#2c333a;
+      --accent:#5fb3ac;
+      --accent-ink:#bfe6e1;
+      --accent-soft:#1c2f2d;
+      --shipped:#63c98a;
+      --shipped-soft:#1a2e21;
+      --partial:#e0ab4d;
+      --partial-soft:#332a17;
+      --deferred:#b79bea;
+      --deferred-soft:#291f38;
+      --notstarted:#8a929a;
+      --notstarted-soft:#20262c;
+      --code-bg:#20262c;
+      --link:#7ecbc4;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12161a;
+    --surface:#1a1f24;
+    --surface-2:#20262c;
+    --ink:#e7e9ea;
+    --ink-muted:#a3abb3;
+    --ink-faint:#6d757d;
+    --border:#2c333a;
+    --accent:#5fb3ac;
+    --accent-ink:#bfe6e1;
+    --accent-soft:#1c2f2d;
+    --shipped:#63c98a;
+    --shipped-soft:#1a2e21;
+    --partial:#e0ab4d;
+    --partial-soft:#332a17;
+    --deferred:#b79bea;
+    --deferred-soft:#291f38;
+    --notstarted:#8a929a;
+    --notstarted-soft:#20262c;
+    --code-bg:#20262c;
+    --link:#7ecbc4;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    margin:0;
+    line-height:1.6;
+  }
+  h1,h2,h3{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    text-wrap:balance;
+    color:var(--ink);
+    font-weight:600;
+  }
+  a{color:var(--link);}
+  code{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    background:var(--code-bg);
+    padding:0.1em 0.35em;
+    border-radius:3px;
+    font-size:0.88em;
+  }
+  .tnum{ font-variant-numeric:tabular-nums; }
+
+  .page{
+    max-width:920px;
+    margin:0 auto;
+    padding:56px 24px 96px;
+    display:flex;
+    flex-direction:column;
+    gap:44px;
+  }
+
+  /* header */
+  .doc-head{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    padding-bottom:28px;
+    border-bottom:1px solid var(--border);
+  }
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent-ink);
+    background:var(--accent-soft);
+    display:inline-flex;
+    width:fit-content;
+    padding:4px 10px;
+    border-radius:3px;
+  }
+  h1.title{
+    font-size:clamp(28px,4vw,38px);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .subtitle{
+    color:var(--ink-muted);
+    font-size:16.5px;
+    max-width:60ch;
+  }
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 22px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12.5px;
+    color:var(--ink-faint);
+    margin-top:6px;
+  }
+  .meta-row b{ color:var(--ink-muted); font-weight:600; }
+
+  /* phase strip */
+  .phase-strip{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:1px;
+    background:var(--border);
+    border:1px solid var(--border);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .phase-tile{
+    background:var(--surface);
+    padding:16px 16px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:0;
+  }
+  .phase-tile .num{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    color:var(--ink-faint);
+    letter-spacing:0.08em;
+  }
+  .phase-tile .name{
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    padding:3px 8px 3px 7px;
+    border-radius:999px;
+    width:fit-content;
+  }
+  .pill::before{
+    content:"";
+    width:6px;height:6px;
+    border-radius:50%;
+    display:inline-block;
+  }
+  .pill.shipped{ background:var(--shipped-soft); color:var(--shipped); }
+  .pill.shipped::before{ background:var(--shipped); }
+  .pill.partial{ background:var(--partial-soft); color:var(--partial); }
+  .pill.partial::before{ background:var(--partial); }
+  .pill.deferred{ background:var(--deferred-soft); color:var(--deferred); }
+  .pill.deferred::before{ background:var(--deferred); }
+  .pill.notstarted{ background:var(--notstarted-soft); color:var(--notstarted); }
+  .pill.notstarted::before{ background:var(--notstarted); }
+
+  /* sections */
+  section{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .sec-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:13px;
+    color:var(--ink-faint);
+  }
+  h2{
+    font-size:20px;
+    margin:0;
+  }
+  h3{
+    font-size:15px;
+    margin:0;
+    color:var(--ink);
+  }
+  p{ margin:0; max-width:72ch; }
+  ul{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; max-width:72ch;}
+  li{ padding-left:2px; }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:6px; }
+  table{ border-collapse:collapse; width:100%; min-width:560px; font-size:14px; }
+  thead th{
+    text-align:left;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    background:var(--surface-2);
+    padding:10px 14px;
+    border-bottom:1px solid var(--border);
+  }
+  tbody td{
+    padding:12px 14px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+    color:var(--ink-muted);
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody td:first-child{ color:var(--ink); font-weight:500; }
+  tbody tr:nth-child(odd){ background:var(--surface); }
+  tbody tr:nth-child(even){ background:color-mix(in srgb, var(--surface) 96%, var(--ink) 4%); }
+
+  .callout{
+    border:1px solid var(--border);
+    border-left:3px solid var(--deferred);
+    background:var(--surface);
+    border-radius:0 6px 6px 0;
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .callout .tag{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--deferred);
+  }
+  .callout p{ color:var(--ink-muted); font-size:14.5px; max-width:70ch; }
+  .callout.trace{ border-left-color:var(--accent); }
+  .callout.trace .tag{ color:var(--accent); }
+  .trace-quote{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    background:var(--surface-2);
+    border-radius:5px;
+    padding:12px 14px;
+    margin:2px 0;
+  }
+  .trace-quote .who{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .trace-quote .claim{ font-size:14px; color:var(--ink); font-style:italic; max-width:68ch; }
+  .trace-quote .reality{ font-size:14px; color:var(--ink-muted); max-width:68ch; }
+
+  .check-list{ display:flex; flex-direction:column; gap:8px; }
+  .check-item{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    font-size:14.5px;
+    color:var(--ink-muted);
+  }
+  .check-item .mark{
+    font-family:"IBM Plex Mono",monospace;
+    color:var(--shipped);
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .check-item b{ color:var(--ink); font-weight:600; }
+
+  .refs{ display:flex; flex-direction:column; gap:6px; font-size:14.5px; }
+  .refs .file{ font-family:"IBM Plex Mono",monospace; color:var(--ink); }
+  .refs .desc{ color:var(--ink-faint); }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding-top:20px;
+    font-family:"IBM Plex Mono",monospace;
+    font-size:11.5px;
+    color:var(--ink-faint);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  @media (max-width:640px){
+    .phase-strip{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+
+<div class="page">
+
+  <div class="doc-head">
+    <span class="eyebrow">Product Requirements Document</span>
+    <h1 class="title">vigilant&#8209;engine — AppSec Findings Pipeline &amp; Dashboard</h1>
+    <p class="subtitle">Normalizing SAST, SCA, secret, and (planned) DAST/container scanner output into one schema, deduplicated and queryable, with a dashboard reading real scan data — a portfolio demonstration of AppSec engineering judgment.</p>
+    <div class="meta-row">
+      <span><b>Owner</b> Deepesh Dang</span>
+      <span><b>Status</b> Phases 1–4 shipped</span>
+      <span><b>Last updated</b> 2026-09-11</span>
+      <span><b>Repo</b> vigilant-engine</span>
+    </div>
+  </div>
+
+  <div class="phase-strip">
+    <div class="phase-tile">
+      <span class="num">PHASE 01</span>
+      <span class="name">Demo target</span>
+      <span class="pill shipped">shipped</span>
+    </div>
+    <div class="phase-tile">
+      <span class="num">PHASE 02</span>
+      <span class="name">Ingestion API</span>
+      <span class="pill shipped">shipped</span>
+    </div>
+    <div class="phase-tile">
+      <span class="num">PHASE 03</span>
+      <span class="name">CI pipeline</span>
+      <span class="pill partial">4 / 6 scanners</span>
+    </div>
+    <div class="phase-tile">
+      <span class="num">PHASE 04</span>
+      <span class="name">Dashboard</span>
+      <span class="pill shipped">shipped</span>
+    </div>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>Problem</h2></div>
+    <p>Security scanners (SAST, SCA, DAST, secret, container) each produce findings in their own JSON shape, with no shared severity scale and no cross-tool identity for &ldquo;the same issue.&rdquo; Nothing persists once a CI job ends. A team running several scanners has no single place to answer <em>what&rsquo;s actually open right now, across every tool, at what severity</em> — that requires normalizing and storing what today lives only in disconnected job logs.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>Goal &amp; non-goals</h2></div>
+    <p>Run real scanners against a real vulnerable app, normalize every tool&rsquo;s output into one schema, deduplicate repeat findings across runs, and surface the result on a dashboard — as a portfolio-grade demonstration of tool selection, schema design, CI integration, and secure-by-default choices. Not a production vulnerability-management platform.</p>
+    <ul>
+      <li>Not built to scan arbitrary user-supplied repos — one fixed demo target.</li>
+      <li>No ticketing, SLA tracking, or remediation workflow.</li>
+      <li>Not optimized for scanner throughput — correctness and clarity over scale.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Requirements by area</h2></div>
+
+    <h3>3.1 Demo target — <span class="pill shipped">shipped</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requirement</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr><td>Scanned app must be recognizable, not custom-built</td><td><a href="https://github.com/juice-shop/juice-shop" target="_blank" rel="noopener">OWASP Juice Shop</a>, pinned as a git submodule at <code>v20.2.0</code> — known-name credibility over a narrower custom-app story.</td></tr>
+          <tr><td>No vendoring a third party&rsquo;s source</td><td>Wired in as a git submodule, never copied into the repo.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.2 Ingestion service (<code>ingestion/</code>) — <span class="pill shipped">shipped</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requirement</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr><td>One shared schema across all scanners</td><td><code>Finding</code> / <code>IngestRequest</code> Pydantic models; every parser maps its tool&rsquo;s raw shape onto this before storage.</td></tr>
+          <tr><td>No duplicate rows across repeat scans</td><td><code>compute_dedupe_hash</code> — SHA-256 over scanner-specific fields; repeat scans upsert <code>last_seen</code> instead of inserting a new row.</td></tr>
+          <tr><td>Storage swappable without a rewrite</td><td><code>DATABASE_URL</code> env var, defaults to SQLite; already reads Postgres connection strings the same way.</td></tr>
+          <tr><td>API surface</td><td><code>POST /ingest</code>, <code>GET /findings</code> (filterable), <code>GET /stats</code> (aggregate counts).</td></tr>
+          <tr><td>Correctness provable before wiring into CI</td><td>Full test suite (<code>test_parsers.py</code>, <code>test_api.py</code>) plus one manual validation against Juice Shop&rsquo;s real <code>npm audit</code> output.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.3 CI pipeline (<code>.github/workflows/</code>) — <span class="pill partial">4 of 6 scanners shipped</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requirement</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr><td>Run real scanners in CI, not just locally</td><td>Semgrep (SAST), npm audit (SCA), Snyk (SCA, gated behind <code>SNYK_TOKEN</code>), gitleaks (secrets).</td></tr>
+          <tr><td>Test suite gates the pipeline</td><td><code>pytest</code> runs first, no <code>|| true</code> — a broken parser fails the job before any scanner runs.</td></tr>
+          <tr><td>Evidence survives the runner&rsquo;s ephemeral disk</td><td>Test report, raw per-scanner JSON, and an ingestion summary all uploaded as run artifacts (<code>if: always()</code>).</td></tr>
+          <tr><td>Verified against a real run</td><td class="tnum">Run 34469209245 — 180 findings ingested (75 critical / 37 high / 61 medium / 5 low / 2 info).</td></tr>
+          <tr><td>Not yet built</td><td>OWASP ZAP (needs a running Juice Shop in CI) and Trivy (needs Phase 5&rsquo;s Docker images) — deferred, not dropped.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>3.4 Dashboard (<code>dashboard/</code>) — <span class="pill shipped">shipped</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requirement</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr><td>Read real ingestion data, not fixtures</td><td>Server-side <code>getFindings()</code> / <code>getStats()</code> against the live API; landing page seeded with the real 180-finding CI run.</td></tr>
+          <tr><td>Findings triageable by severity</td><td>Clicking a stat tile sets <code>?severity=</code>, read via <code>searchParams</code>, run as a real filtered query. Verified: &ldquo;Critical&rdquo; returns exactly 75 rows.</td></tr>
+          <tr><td>Accessible visual identity</td><td>Palette run through CVD/contrast validation in both themes; severity and source are never color-only — a swatch always sits beside a text label.</td></tr>
+          <tr><td>Verified, not just built</td><td>Clean <code>build</code>/<code>lint</code>; Playwright screenshots in light and dark mode, zero console errors.</td></tr>
+          <tr><td>Deferred</td><td>Open-vs-fixed trend — needs the <code>scan_runs</code> history table below.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>Known gap: run history</h2></div>
+    <div class="callout">
+      <span class="tag">Deferred · scoped to Phase 5</span>
+      <p><code>Finding</code> carries per-row <code>first_seen</code> / <code>last_seen</code>, which answers &ldquo;is this still open&rdquo; but not &ldquo;how did the count change from run to run.&rdquo; Closing that needs a <code>scan_runs</code> table — one row per run, with a timestamp, commit, and per-severity snapshot — a schema addition, not a rewrite. It&rsquo;s gated on Phase 5&rsquo;s volume-backed database also landing, since there&rsquo;s no point tracking run history a container restart would wipe. Until then, the dashboard&rsquo;s open-vs-fixed trend stays deliberately unbuilt rather than built against faked data.</p>
+    </div>
+
+    <div class="callout trace">
+      <span class="tag">Process note — how this gap was caught</span>
+      <p>Worth recording as process, not just outcome: this requirement was initially <em>cited</em>, not tracked.</p>
+      <div class="trace-quote">
+        <span class="who">Phase 4 checklist, as written</span>
+        <span class="claim">&ldquo;It needs history across multiple scans, which needs the <code>scan_runs</code> table gap already flagged in Phase 3.&rdquo;</span>
+        <span class="reality">Read at face value: &ldquo;don&rsquo;t worry, this is already covered elsewhere.&rdquo; It wasn&rsquo;t — Phase 3 only flags <em>persistence</em> (the DB surviving past one CI job, closed by Phase 5&rsquo;s volume and Phase 7&rsquo;s RDS). Neither phase ever asked for a <code>scan_runs</code> table. Persistence and run history are different problems — a volume-backed <code>findings</code> table still only gives per-finding <code>first_seen</code>/<code>last_seen</code>, never a queryable list of runs.</span>
+      </div>
+      <p>The citation pointed at a requirement that existed nowhere as a tracked task — an assumption stated once, inside the very bullet deferring work because of it. Left unchecked, it would likely have stayed unbuilt indefinitely. It&rsquo;s now its own explicit item under Phase 5 (§4.5).</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>Out of scope for now</h2></div>
+    <ul>
+      <li>IaC scanning (Checkov / tfsec) — no Terraform or Kubernetes manifests exist yet; revisit if Phase 7 (AWS deployment) happens.</li>
+      <li>Multi-repo or multi-target scanning — one fixed demo target by design.</li>
+      <li>Auth / RBAC on the dashboard — single-user portfolio project, not a multi-tenant product.</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>Roadmap</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Phase</th><th>Scope</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>05 — Packaging</td><td>Dockerfiles for <code>ingestion</code>/<code>dashboard</code>, root <code>docker-compose.yml</code>, <code>scan_runs</code> table, one-command README.</td><td><span class="pill notstarted">not started</span></td></tr>
+          <tr><td>06 — Polish</td><td>Full end-to-end run, dashboard screenshots, interview-prep doc reconciled against what shipped.</td><td><span class="pill notstarted">not started</span></td></tr>
+          <tr><td>07 — AWS + IaC <em>(stretch)</em></td><td>Terraform-provisioned ECS/RDS/ALB stack, OIDC-based CI auth, tfsec/checkov scanning of the Terraform itself.</td><td><span class="pill notstarted">not started</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">07</span><h2>Success criteria</h2></div>
+    <div class="check-list">
+      <div class="check-item"><span class="mark">✓</span><span><b>Met</b> — a single CI run produces normalized, deduplicated findings queryable by severity and source within seconds of the run finishing.</span></div>
+      <div class="check-item"><span class="mark">✓</span><span><b>Met</b> — the dashboard shows the same numbers the CI run&rsquo;s <code>/stats</code> smoke test printed, with no manual data entry.</span></div>
+      <div class="check-item"><span class="mark">✓</span><span><b>Met</b> — every non-trivial design decision (target app choice, scanner set, dedupe strategy, defer-vs-build calls) is traceable to a written reason, tracked in the phased build plan.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">08</span><h2>References</h2></div>
+    <div class="refs">
+      <div><span class="file">ARCHITECTURE.md</span> <span class="desc">— system diagram, scanner coverage, dedupe field table</span></div>
+      <div><span class="file">Plan_vigilant_engine.md</span> <span class="desc">— phased task checklist with status</span></div>
+      <div><span class="file">docs/THREAT_MODEL.md</span> <span class="desc">— STRIDE analysis of the demo target</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>vigilant-engine · PRD</span>
+    <span>authored with Claude Code</span>
+  </footer>
+
+</div>
+
+</body></html>
