@@ -565,10 +565,10 @@ flowchart LR
 [docs/ACTION_ITEMS.md](docs/ACTION_ITEMS.md) for the reasoning behind
 each. Not scheduled into this or any phase; recorded so it isn't lost:
 
-- [ ] Real Snyk integration (create an account, add `SNYK_TOKEN` as a
-      GitHub Actions secret) — optional, but directly upgrades "adjacent
+- [ ] Real Snyk integration — optional, but directly upgrades "adjacent
       Snyk exposure" to genuine hands-on CLI/SCA experience for interview
-      framing.
+      framing. Steps and verification target in
+      [docs/SNYK_PHASE3_APPLICATION.md](docs/SNYK_PHASE3_APPLICATION.md).
 - [ ] Cross-check `docs/juice-shop-threat-model.json` (this project's
       rebuild) against `demo-target/threat-model.json` (Juice Shop's own
       official model) for anything missed.

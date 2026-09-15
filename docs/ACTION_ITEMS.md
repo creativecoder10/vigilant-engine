@@ -12,22 +12,13 @@ recorded so it isn't lost, not so it gets done automatically.
 
 ## 1. Real Snyk integration — optional, directly relevant to interview framing
 
-Right now `security-scans.yml`'s Snyk step only runs `if: env.SNYK_TOKEN
-!= ''` — no account exists yet, so it silently no-ops every run. Creating
-a free Snyk account and adding `SNYK_TOKEN` as a GitHub Actions secret
-would let a real `snyk test` run against Juice Shop in CI.
-
-**Why this one specifically matters for interview framing**, not just as
-a checklist item: it upgrades "I've seen Snyk used at a former employer"
-(adjacent exposure) to "I integrated Snyk into a CI pipeline myself,
-handled its CLI output, normalized it into the same schema as the other
-five scanners" — a materially stronger, more defensible claim. The
-precise, honest scope of that claim: hands-on with **Snyk's CLI /
-dependency (SCA) scanning in CI**, specifically. Not the same as
-experience with Snyk's broader enterprise platform (org-level policy
-management, container/IaC scanning modules, its web triage UI at scale)
-— worth stating that boundary precisely rather than rounding up, same
-discipline used elsewhere in this project's interview-prep notes.
+Split out into its own doc, since it's the one item here with actual
+steps and a verification target rather than a one-off: see
+[SNYK_PHASE3_APPLICATION.md](SNYK_PHASE3_APPLICATION.md). Short version:
+wiring in a real Snyk account upgrades "adjacent exposure to Snyk at a
+former employer" into genuine hands-on CLI/SCA-scanning experience —
+worth doing for the interview-framing upgrade alone, scope stated
+precisely in that doc rather than rounded up.
 
 ## 2. Dashboard screenshot for the README / portfolio writeup
 
