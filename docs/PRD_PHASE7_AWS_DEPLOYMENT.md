@@ -54,11 +54,10 @@ costs nothing extra to get right up front and a lot more to retrofit.
   public URL, an unauthenticated trigger would let anyone on the
   internet repeatedly kick off scans and rack up GitHub Actions
   minutes / AWS cost.
-- **Kubernetes.** Phase 7 targets ECS/Fargate, not EKS or a local K8s
-  cluster. A Kubernetes-specific gap was flagged separately (an AppSec
-  posting naming K8s by name) and deliberately kept out of this phase
-  — see the "Kubernetes — deliberately out of scope here" section
-  below rather than reopening that decision per-phase.
+- **Kubernetes.** Phase 7's current plan targets ECS/Fargate, not EKS —
+  but whether that stays the case is an **open decision, not yet
+  made** — see §7 below and
+  [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md).
 
 ## 3. Users
 
@@ -144,22 +143,19 @@ and torn down deliberately. Revisit "always-on" once Phase 8's
 CI-driven deploy exists to keep it patched and monitored — but this is
 a call to make consciously when the phase starts, not default into.
 
-## 7. Kubernetes — deliberately out of scope here
+## 7. Kubernetes — open decision, not yet made
 
 An AppSec job posting (Endeavour Group, surfaced 2026-09-11) named
-Kubernetes specifically, which Phase 7's ECS/Fargate plan doesn't
-cover. Decision made outside this phase: **don't** swap Phase 7 to EKS
-— none of the three actual target-role postings (LEAP, ASX, Australia
-Post) name Kubernetes, and a full EKS migration mainly proves
-cluster-ops skill rather than the AppSec-specific thing that posting
-was actually screening for. Instead, a separate, small local-cluster
-addition (Pod Security Standards, NetworkPolicies, RBAC, K8s Secrets,
-and — as an extension of the already-planned container-image
-vulnerability scanner — an OPA/Kyverno admission policy blocking
-vulnerable images) is tracked as its own item in
-`PROJECT_ROADMAP.md`, not as a change to this phase's ECS plan. Noted
-here so the question doesn't get reopened by accident when Phase 7
-actually starts.
+Kubernetes specifically, which Phase 7's current ECS/Fargate plan
+doesn't cover. Whether Phase 7 should target ECS as planned, swap to
+EKS, or leave K8s to a separate smaller addition alongside an unchanged
+ECS plan is **genuinely undecided** — it needs real research time
+(cost, operational complexity, and actual relevance to the three
+primary target-role postings, none of which name Kubernetes), not a
+default. Full trade-off writeup, options, and open questions:
+[docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md). **Resolve that
+document before writing `ecs.tf` (or `eks.tf`)** — this section will be
+updated to match once it is.
 
 ## 8. Out of scope
 
@@ -167,7 +163,9 @@ actually starts.
   of `infra/` — Phase 8.
 - A full least-privilege IAM audit pass — Phase 8.
 - On-demand/dashboard-triggered scanning.
-- EKS or any Kubernetes-based deployment target (see §7 above).
+- Whether EKS or any Kubernetes-based deployment target belongs in this
+  phase at all — open, see §7 above and
+  [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md).
 - Multi-region, autoscaling, or any production-scale sizing — this is
   a portfolio demo, sized minimal on purpose.
 
@@ -190,6 +188,8 @@ actually starts.
 
 ## References
 
+- [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md) — the open
+  ECS-vs-EKS decision this phase is currently blocked on (§7 above)
 - [Plan_vigilant_engine.md, Phase 7](../Plan_vigilant_engine.md) — the
   task-level checklist this PRD doesn't duplicate
 - [docs/PRD.md §6 (Out of scope) / §7 (Roadmap)](PRD.md) — where

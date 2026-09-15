@@ -575,8 +575,141 @@ each. Not scheduled into this or any phase; recorded so it isn't lost:
 
 ## Phase 6 — polish
 
-- [ ] Run the full pipeline once end-to-end, seed real findings
-- [ ] Screenshot the dashboard for the README / portfolio writeup
+**Goal.** Every phase so far shipped one *piece* (ingestion, CI, dashboard,
+packaging) and verified it in isolation. Phase 6 adds no new code — it
+proves the *whole system* holds together the way a stranger would actually
+experience it: clone the repo, run the one documented command, watch real
+findings from real scanners land on the dashboard. The output of this
+phase is evidence (screenshots, a verified clean run), not features.
+
+```mermaid
+flowchart LR
+    A["6.1 Clean-room boot\nprove the README's own\nquick start works verbatim"] --> B["6.2 Seed real findings\nagainst the LIVE compose stack\n(not fixtures, not ephemeral CI disk)"]
+    B --> C["6.3 Screenshot capture\nlight + dark + filter applied"]
+    C --> D["6.4 Close the loop\nREADME embeds the screenshot,\nthis checklist + ACTION_ITEMS updated"]
+```
+
+> **Why not just reuse the Phase 3 CI run's 180 findings?** Those prove the
+> *ingestion/parsing* logic works. They don't prove the *product* works —
+> CI's SQLite dies with the runner VM (see Phase 3's ephemeral-vs-persistent
+> diagram above), so nobody has yet watched findings survive in the actual
+> docker-compose stack a visitor would run locally. That gap is what 6.1/6.2
+> close.
+
+### 6.1 Clean-room boot test
+
+Reset to exactly what a first-time visitor sees, then run only the commands
+`README.md` documents — nothing extra, nothing remembered from earlier
+sessions.
+
+```mermaid
+flowchart TD
+    R["docker compose down -v\n(wipe volume — zero state, like a fresh clone)"] --> S["git submodule update --init"]
+    S --> U["docker compose up --build"]
+    U --> P1["localhost:3000 → Juice Shop"]
+    U --> P2["localhost:8000/docs → Swagger UI"]
+    U --> P3["localhost:3001 → dashboard"]
+    P3 --> E{"dashboard renders\nempty state cleanly?"}
+    E -->|"no error boundary,\nzero-findings look intentional"| Pass["pass — ready to seed"]
+    E -->|"crash / blank page"| Fix["bug — fix before\nseeding anything"]
+```
+
+- [x] `docker compose down -v` then the two README quick-start commands,
+      verbatim — no manual fixes applied outside what's documented
+- [x] All three URLs load with the expected content
+- [x] Dashboard's zero-findings state renders cleanly (no console error, no
+      broken layout) — this is the state every future clone starts in, so
+      it has to look intentional, not broken
+  - **Verified 2026-09-15:** `docker compose down -v` (wiped the volume),
+        `git submodule update --init`, `docker compose up --build -d` from
+        cold. All three URLs returned `200`. `/stats` read back all-zero.
+        Dashboard's rendered HTML showed "0 open findings across the
+        ingested scans" and "No findings match the current filters" — no
+        error/exception text anywhere in the response.
+
+### 6.2 Seed real findings against the live stack
+
+Every scanner that already has a working parser (Phase 2) and a working CI
+step (Phase 3) gets run once more here — but against the actual running
+`docker compose` containers on this machine, POSTed through the same
+`/ingest` API, so the findings the dashboard shows persist past a restart.
+Snyk stays excluded (no token yet — tracked separately in
+[docs/SNYK_PHASE3_APPLICATION.md](docs/SNYK_PHASE3_APPLICATION.md), not a
+Phase 6 blocker).
+
+```mermaid
+flowchart LR
+    subgraph Source["against demo-target/ source"]
+        SG[semgrep] --> API
+        NA["npm audit"] --> API
+        GL[gitleaks] --> API
+    end
+    subgraph Running["against the RUNNING compose container"]
+        ZAP["ZAP baseline\n(zaproxy/zap-stable image,\nsame compose network)"] --> API
+    end
+    subgraph Images["against the BUILT compose images"]
+        TR["trivy image\n(ingestion + dashboard)"] --> API
+    end
+    API[("POST /ingest\nvia post_to_ingestion.py")] --> DB[("findings.db\n(volume-backed —\nsurvives a restart)")]
+    DB --> SR["POST /scan-runs\nsnapshot this batch"]
+```
+
+- [x] `semgrep`, `npm audit`, `gitleaks` against `demo-target/` — same
+      commands `.github/workflows/security-scans.yml` runs, pointed at
+      `localhost:8000` instead of the CI-local API
+  - **Verified 2026-09-15:** 69 semgrep, 46 npm audit, 216 gitleaks
+        (full 21,401-commit history scan) — all three POSTed through
+        `/ingest` and confirmed in `/findings`.
+- [x] ZAP baseline against the compose-network `demo-target` container
+      (already proven locally once in Phase 3 — repeat against *this*
+      stack so the findings land in the persistent volume, not a throwaway
+      run)
+  - **Verified 2026-09-15:** `docker run --network vigilant-engine_default
+        zaproxy/zap-stable zap-baseline.py -t http://demo-target:3000` —
+        reached the live compose container by service DNS name, 8 real
+        WARN-level alert types (Cross-Domain Misconfig, Timestamp
+        Disclosure, CSP/CORP headers missing, etc.), 10 findings ingested.
+- [x] `trivy image` against the built `ingestion`/`dashboard` images —
+      closes the same gap Phase 3 still has open in CI, done manually
+      here so the dashboard has real container-scan data to show; CI
+      automation for it remains Phase 3's unchecked item, not duplicated
+  - **Verified 2026-09-15:** 184 (ingestion) + 292 (dashboard) real CVEs
+        from base-OS/language-runtime layers, both ingested.
+- [x] `POST /scan-runs` once after seeding, to record a real snapshot (not
+      the synthetic single-finding one from Phase 5's persistence test)
+  - **Verified 2026-09-15:** snapshot recorded — 785 total open (203
+        critical / 167 high / 253 medium / 155 low / 7 info).
+- [x] `docker compose restart` and re-check `/stats` — confirms this
+      batch of *real* findings survives a restart, the same property
+      Phase 5 proved with one synthetic row
+  - **Verified 2026-09-15:** `total_open` read `785` both before and
+        after `docker compose restart`.
+
+```mermaid
+flowchart LR
+    SG["semgrep\n69"] --> API
+    NA["npm audit\n46"] --> API
+    GL["gitleaks\n216"] --> API
+    ZAP["ZAP\n10"] --> API
+    TR["trivy\n(ingestion 184\n+ dashboard 292)"] --> API
+    API[("POST /ingest")] --> R["785 open findings\n203 critical / 167 high\n253 medium / 155 low / 7 info"]
+```
+
+### 6.3 Screenshot capture
+
+- [ ] Dashboard home, unfiltered — light mode
+- [ ] Dashboard home, unfiltered — dark mode
+- [ ] One severity filter applied (e.g. Critical tile clicked) — shows the
+      filter is a real query, not just a static layout
+- [ ] Saved under `docs/screenshots/`
+
+### 6.4 Close the loop in docs
+
+- [ ] Embed the screenshot(s) in `README.md` (currently text-only —
+      no visual of the dashboard exists there yet)
+- [ ] Check off this phase in this file
+- [ ] Resolve [docs/ACTION_ITEMS.md](docs/ACTION_ITEMS.md) item 2 (dashboard
+      screenshot) — superseded once this ships
 
 ## Phase 7 — AWS deployment via Terraform (basic IaC, public demo)
 
