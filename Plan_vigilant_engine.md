@@ -182,6 +182,42 @@ flowchart LR
 >    force-upgrading npm first. Didn't reproduce locally on npm 11.x.
 >
 > Full diagnosis: `docs/FIRST_CI_RUN_EXPECTATIONS.md`.
+
+**Next up — ZAP (DAST) + Trivy (image scan): what and why.**
+
+Everything ingested so far inspects source or manifests. These two test
+different targets entirely:
+
+```mermaid
+flowchart LR
+    subgraph ZAPFlow["ZAP — tests the RUNNING app"]
+        JS["Juice Shop container\n(official image)"] -->|"HTTP requests\n(spider + passive checks)"| Z["zap-baseline.py"]
+        Z --> ZR["JSON: missing headers,\ninsecure cookies,\nverbose errors"]
+    end
+    subgraph TrivyFlow["Trivy — tests the BUILT image"]
+        IMG["ingestion/ + dashboard/\nimages (Phase 5 Dockerfiles)"] -->|"scan filesystem layers"| T["trivy image"]
+        T --> TR["JSON: known-CVE OS\npackages + baked-in deps"]
+    end
+    ZR --> API[("ingestion API\n/ingest")]
+    TR --> API
+```
+
+> **Why not just more SCA?** npm audit/Snyk only see *declared*
+> dependencies (`package-lock.json`). Trivy sees what's actually baked into
+> the image — base OS packages (Debian/Alpine), anything pulled in via
+> `apt`/`RUN`. ZAP goes further still: no code-reading at all, it attacks
+> the live app the way a browser/attacker would (baseline mode = passive +
+> spider only, not active exploitation).
+
+> **Not blocked.** Trivy needs a *built* image — Phase 5's
+> `ingestion/Dockerfile` and `dashboard/Dockerfile` are already built and
+> verified, so this is just a `docker build` CI step before `trivy image`,
+> not new packaging work.
+
+> **No new ingestion-side code.** `app/parsers/zap.py` and
+> `app/parsers/trivy.py` were already built and tested in Phase 2 — this
+> phase is CI-workflow wiring only.
+
 - [ ] Workflow: boot Juice Shop in a container, run ZAP baseline scan against it
 - [ ] Workflow: build `ingestion/` and `dashboard/` images, run Trivy against them
 - [ ] Each job POSTs its raw output to the ingestion API's `/ingest`
@@ -461,7 +497,15 @@ flowchart LR
       rendered with no error boundary — proves the container-to-container
       networking `docker-compose.yml` will
       formalize actually works.
-- [ ] Root `docker-compose.yml` wiring demo-target + ingestion + dashboard together
+- [x] Root `docker-compose.yml` wiring demo-target + ingestion + dashboard
+      together — named volume (`findings_data`) mounted at `/app/data`,
+      `DATABASE_URL` pointed at `./data/findings.db`, `dashboard` reaching
+      `ingestion` via `http://ingestion:8000`. **Verified with a real
+      persistence test, not just "should work":** seeded a finding via
+      `/ingest`, ran `docker compose down` (full teardown — containers and
+      network removed) then `docker compose up -d` (brand new containers),
+      and `/stats` still showed the same finding — the volume actually
+      works, proven end-to-end.
 - [ ] `scan_runs` table (ingestion schema) — one row per scan run
       (timestamp, repo/branch/commit, per-severity counts at that point),
       distinct from `Finding`'s per-row `first_seen`/`last_seen`. Needs the

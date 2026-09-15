@@ -81,7 +81,7 @@ states the *requirement* each phase satisfies and whether it shipped.
 | Verified, not just built | `npm run build`/`lint` clean; Playwright screenshots in both light and dark mode, zero console/page errors |
 | Deferred, not built | Open-vs-fixed trend — needs a queryable run history, which needs the `scan_runs` table gap below |
 
-### 4.5 Packaging (`ingestion/Dockerfile`, `dashboard/Dockerfile`, `docker-compose.yml`) — **both images built & verified together; `docker-compose.yml` not yet built**
+### 4.5 Packaging (`ingestion/Dockerfile`, `dashboard/Dockerfile`, `docker-compose.yml`) — **shipped**
 
 `demo-target/` (Juice Shop) already ships its own `Dockerfile` upstream —
 reused as-is, not rewritten. `ingestion/Dockerfile` built first, since it's
@@ -94,10 +94,10 @@ the simpler of the two remaining images — `docker build` succeeds and
 | Base image must support Python without unnecessary bloat | `python:3.12-slim` — Debian-based, so dependencies with compiled C extensions (`cryptography`, parts of `pydantic`/`sqlmodel`) install from prebuilt wheels like they do locally; `alpine`'s musl libc breaks or slow-compiles those same packages, and the full `python:3.12` image carries build tools/docs the runtime never uses |
 | Dependency install must not repeat on every rebuild | `COPY requirements.txt` + `RUN pip install` happens as its own layer *before* `COPY app/` — Docker's layer cache keys each instruction on its inputs, so a code-only change (the common case) reuses the cached install layer instead of reinstalling every dependency on every build |
 | Service must be reachable from other containers on the compose network, not just from inside its own container | `CMD` runs `uvicorn app.main:app --host 0.0.0.0 --port 8000` — binding `0.0.0.0` instead of the loopback-only default is what makes the service answer connections from the `dashboard` container and from Docker's host port mapping; **verified**, not just designed — a container run with `-p 8001:8000` answered `/docs`/`/findings`/`/stats` from the host |
-| SQLite data must survive a container restart/rebuild | `findings.db` lives on a Docker-managed named volume, not the container's own writable filesystem layer — that layer is deleted every time the container is recreated (`docker compose down`, a rebuild, a crash-restart), which would otherwise silently reset findings to empty on every redeploy. Not yet wired up — the volume itself is defined in `docker-compose.yml`, not the Dockerfile, so this lands with the compose file below |
+| SQLite data must survive a container restart/rebuild | `findings.db` (now `./data/findings.db`) lives on a Docker-managed named volume (`findings_data`, mounted at `/app/data`), not the container's own writable filesystem layer. **Verified with a real teardown, not just designed:** seeded a finding via `/ingest`, ran `docker compose down` (containers *and* network fully removed) then `docker compose up -d` (brand new containers), and `/stats` still showed the same finding |
 | `dashboard/Dockerfile` build must ship a minimal runtime, not the full build toolchain | Multi-stage (`deps`/`builder`/`runner`), `node:20-slim` (consistent glibc reasoning as `ingestion`'s base image — `package-lock.json` pulls in `sharp`, a compiled dependency), `next.config.ts` updated with `output: "standalone"` per Next.js's own documented Docker guidance |
-| Both images must actually talk to each other, not just build individually | **Verified together** on a real Docker network (`docker network create` + `--name ingestion`/`--name dashboard`): `dashboard` fetched live data from `http://ingestion:8000` — a container name, not `localhost` — and rendered with no error boundary. This is the exact mechanism `docker-compose.yml`'s own network will provide automatically |
-| Root `docker-compose.yml` | Not yet built — next up; also where the SQLite volume (row above) and `INGESTION_API_URL=http://ingestion:8000` actually get wired in for the real, non-manual run |
+| Both images must actually talk to each other, not just build individually | **Verified together**, first manually on a real Docker network, then for real through `docker-compose.yml` itself: `dashboard` fetches live data from `http://ingestion:8000` — a container name, not `localhost` — and renders with no error boundary |
+| Root `docker-compose.yml` | Built and verified — wires `demo-target` (host `:3000`), `ingestion` (host `:8000`), and `dashboard` (host `:3001`, offset from `3000` since Juice Shop and the dashboard's standalone server both default to port 3000 internally) together on one Compose-managed network, with the named volume and `INGESTION_API_URL` set for real, not passed manually via `-e` |
 
 **Why decide the design before writing the file:** each of these is a
 plausible-looking default that fails silently if picked wrong (wrong host
@@ -105,8 +105,8 @@ binding refuses connections with no error; no volume quietly resets data on
 every redeploy) — worth reasoning through explicitly rather than discovering
 via a broken container. Full narrative version of each decision, plus Docker
 fundamentals (images, base images, layers): `PHASE5_DOCKER_PACKAGING_NOTES.md`
-(in the notes directory, kept separate from interview-prep material since
-it's build/learning notes, not interview rehearsal).
+(in the external `job prep notes` folder, kept separate from interview-prep
+material since it's build/learning notes, not interview rehearsal).
 
 ## 5. Known gap: run history
 

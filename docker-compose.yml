@@ -1,0 +1,26 @@
+services:
+  demo-target:
+    build: ./demo-target
+    ports:
+      - "3000:3000"
+
+  ingestion:
+    build: ./ingestion
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/findings.db
+    volumes:
+      - findings_data:/app/data
+
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3001:3000"
+    environment:
+      - INGESTION_API_URL=http://ingestion:8000
+    depends_on:
+      - ingestion
+
+volumes:
+  findings_data:
