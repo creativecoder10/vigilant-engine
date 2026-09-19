@@ -1,13 +1,50 @@
 # Decision record — ECS/Fargate vs. EKS for Phase 7
 
-**Status:** Open — not decided. This document lays out the trade-off so
-the decision can be made deliberately when time is available to research
-it properly, rather than defaulted into either direction.
+**Status:** Decided — Option A (ECS/Fargate only). EKS is out of scope
+for Phase 7.
 **Owner:** Deepesh Dang
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-18
 **Relationship to main project:** feeds directly into
-[docs/PRD_PHASE7_AWS_DEPLOYMENT.md](PRD_PHASE7_AWS_DEPLOYMENT.md) — Phase
-7's `ecs.tf` (or a future `eks.tf`) depends on which way this resolves.
+[docs/PRD_PHASE7_AWS_DEPLOYMENT.md](PRD_PHASE7_AWS_DEPLOYMENT.md) —
+Phase 7's `ecs.tf` is the resolved outcome of this decision.
+
+## Decision (2026-09-18)
+
+**Going with ECS/Fargate (Option A).** Reasoning: EKS's operational
+learning curve (kubectl, manifests/Helm, ingress controller install,
+IRSA, cluster upgrades) is large relative to the interview-prep time
+available, and only 1 of the 4 current target-role postings (Endeavour)
+names Kubernetes at all — the other three (LEAP, ASX, Australia Post)
+don't. Depth on ECS/Terraform/AWS security fundamentals, actually
+finished, was judged more valuable than a partially-learned EKS build.
+
+This decision covers **Phase 7's orchestrator only**. Option C's second
+half — a small local `kind`/`minikube` cluster for K8s-*security*
+concepts (Pod Security Standards, NetworkPolicies, RBAC, admission
+control) — remains a separate, undecided item tracked in
+`PROJECT_ROADMAP.md`, not resolved by this decision.
+
+## Discussion starting point (2026-09-16, superseded by the decision above)
+
+| Option | What it means | What it actually proves |
+| --- | --- | --- |
+| **A — ECS only** | Build Phase 7 exactly as planned; K8s stays a documented gap | Managed AWS orchestration w/ secure defaults |
+| **B — Replace with EKS** | Swap `ecs.tf` for EKS + K8s manifests | Cluster *operations* (networking, ingress, node IAM) — infra/platform skill profile |
+| **C — ECS + separate local K8s security lab** | Keep Phase 7 as ECS; add a small `kind`/`minikube` project for Pod Security Standards, NetworkPolicies, RBAC, admission control (no AWS spend) | K8s-*security* literacy — what an AppSec interviewer is more likely to actually probe |
+
+**Key asymmetries:**
+- **Cost:** EKS = ECS's cost + a flat ~$0.10/hr control-plane charge, compounding if stood up more than once for demos.
+- **Complexity:** EKS adds real surface area — `kubectl`, manifests/Helm, ingress controller, pod-level IAM (IRSA), cluster upgrades.
+- **Role fit:** only 1 of 4 current target postings (Endeavour) names Kubernetes at all.
+
+**Open questions, not yet answered:**
+1. How much real project time is left before Phase 7 needs to start?
+2. Is there a concrete interview pipeline where *EKS specifically* (not K8s generally) would come up?
+3. Does the CV story favor "one AWS deployment, done well" or "two orchestrators, both working"?
+
+**Recorded lean (non-binding, superseded — see Decision above):** Option C.
+
+---
 
 ## 1. Why this decision exists
 

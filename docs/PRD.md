@@ -1,8 +1,8 @@
 # PRD — vigilant-engine: AppSec Findings Pipeline & Dashboard
 
-**Status:** Phases 1–6 shipped. Phases 7–8 not started.
+**Status:** Phases 0–6 shipped. Phases 7–9 not started. See [§7](#7-phase-status) for the full breakdown.
 **Owner:** Deepesh Dang
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-18
 
 ## 1. Problem
 
@@ -170,15 +170,24 @@ gap between what was claimed and what was true.
   anyone on the internet repeatedly kick off scans and rack up GitHub
   Actions minutes / AWS cost.
 
-## 7. Roadmap (not started)
+## 7. Phase status
 
-| Phase | Scope |
-| --- | --- |
-| 5 — packaging | **Shipped.** Dockerfiles for `ingestion`/`dashboard`, root `docker-compose.yml`, `scan_runs` (one row per scan run, snapshotting open-finding counts by severity), and the root README's one-command run instructions — see [4.5](#45-packaging-ingestiondockerfile-dashboarddockerfile-docker-composeyml--shipped) |
-| 6 — polish | Full end-to-end run, dashboard screenshots, interview-prep doc reconciled against what shipped |
-| 7 — AWS deployment via Terraform (basic IaC) | Terraform-provisioned VPC/ECR/RDS/ECS/ALB stack, private DB + no hardcoded secrets + scoped security groups as non-negotiable defaults, first deploy run by hand — gets a real public URL — see [docs/PRD_PHASE7_AWS_DEPLOYMENT.md](PRD_PHASE7_AWS_DEPLOYMENT.md) |
-| 8 — cloud-security automation (stretch) | CI-driven deploy job, GitHub OIDC auth for CI, `tfsec`/`checkov` scanning of the Terraform, a deeper least-privilege IAM audit pass |
-| 9 — AI-generated fix review pipeline | LLM-proposed fixes for a handful of real findings, validated and documented against a reusable review checklist — see [docs/PRD_FIX_REVIEW.md](PRD_FIX_REVIEW.md) |
+Full task-level checklists live in
+[Plan_vigilant_engine.md](../Plan_vigilant_engine.md) — this table is the
+at-a-glance summary.
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 0 — docs | Architecture doc, shared `Finding`/`IngestRequest` schema stub, threat-model docs, STRIDE methodology, Burp runbook | **Shipped** |
+| 1 — demo-target | [OWASP Juice Shop](https://github.com/juice-shop/juice-shop) wired in as a git submodule, pinned to `v20.2.0`, verified reachable | **Shipped** |
+| 2 — ingestion service | FastAPI + SQLModel, shared schema, dedupe hash, `/ingest` `/findings` `/stats`, full test suite — see [4.2](#42-ingestion-service-ingestion--shipped) | **Shipped** |
+| 3 — CI pipeline | Semgrep, npm audit, Snyk, gitleaks, ZAP wired into `security-scans.yml`, verified against a real run (180 findings) — see [4.3](#43-ci-pipeline-githubworkflows--shipped-for-5-of-6-scanners) | **Shipped for 5 of 6 scanners** — Trivy (container image scanning) not yet in CI |
+| 4 — dashboard | Next.js frontend, server-side severity/source filtering, accessible palette, Playwright-verified — see [4.4](#44-dashboard-dashboard--shipped) | **Shipped** — open-vs-fixed trend chart deferred (data now exists via `scan_runs`, §5) |
+| 5 — packaging | Dockerfiles for `ingestion`/`dashboard`, root `docker-compose.yml`, `scan_runs` table, one-command quick start — see [4.5](#45-packaging-ingestiondockerfile-dashboarddockerfile-docker-composeyml--shipped) | **Shipped** |
+| 6 — polish | Clean-room boot test, 785 real findings seeded against the live compose stack, dashboard screenshots (light/dark/filtered), docs closed | **Shipped** |
+| 7 — AWS deployment via Terraform (basic IaC) | Terraform-provisioned VPC/ECR/RDS/ECS/ALB stack, private DB + no hardcoded secrets + scoped security groups as non-negotiable defaults, first deploy run by hand — see [docs/PRD_PHASE7_AWS_DEPLOYMENT.md](PRD_PHASE7_AWS_DEPLOYMENT.md) | **Not started** — ECS vs. EKS now decided (ECS, see [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md)); always-on-vs-teardown still open (§6 of the Phase 7 PRD) |
+| 8 — cloud-security automation (stretch) | CI-driven deploy job, GitHub OIDC auth for CI, `tfsec`/`checkov` scanning of the Terraform, a deeper least-privilege IAM audit pass | **Not started** |
+| 9 — AI-generated fix review pipeline | LLM-proposed fixes for a handful of real findings, validated and documented against a reusable review checklist — see [docs/PRD_FIX_REVIEW.md](PRD_FIX_REVIEW.md) | **Not started** |
 
 ## 8. Success criteria
 

@@ -54,9 +54,8 @@ costs nothing extra to get right up front and a lot more to retrofit.
   public URL, an unauthenticated trigger would let anyone on the
   internet repeatedly kick off scans and rack up GitHub Actions
   minutes / AWS cost.
-- **Kubernetes.** Phase 7's current plan targets ECS/Fargate, not EKS —
-  but whether that stays the case is an **open decision, not yet
-  made** — see §7 below and
+- **Kubernetes.** Phase 7 targets ECS/Fargate, not EKS — **decided
+  2026-09-18**, see §7 below and
   [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md).
 
 ## 3. Users
@@ -143,19 +142,18 @@ and torn down deliberately. Revisit "always-on" once Phase 8's
 CI-driven deploy exists to keep it patched and monitored — but this is
 a call to make consciously when the phase starts, not default into.
 
-## 7. Kubernetes — open decision, not yet made
+## 7. Kubernetes — decided
 
 An AppSec job posting (Endeavour Group, surfaced 2026-09-11) named
-Kubernetes specifically, which Phase 7's current ECS/Fargate plan
-doesn't cover. Whether Phase 7 should target ECS as planned, swap to
-EKS, or leave K8s to a separate smaller addition alongside an unchanged
-ECS plan is **genuinely undecided** — it needs real research time
-(cost, operational complexity, and actual relevance to the three
-primary target-role postings, none of which name Kubernetes), not a
-default. Full trade-off writeup, options, and open questions:
-[docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md). **Resolve that
-document before writing `ecs.tf` (or `eks.tf`)** — this section will be
-updated to match once it is.
+Kubernetes specifically, which Phase 7's ECS/Fargate plan doesn't
+cover. **Decided 2026-09-18: Phase 7 targets ECS/Fargate**, not EKS —
+EKS's operational learning curve (kubectl, Helm, ingress controller,
+IRSA, cluster upgrades) was judged too large relative to available
+interview-prep time, and only 1 of 4 target postings (Endeavour) names
+Kubernetes. A separate local `kind`/`minikube` cluster for K8s-
+*security* concepts remains a possible future addition outside this
+phase, not part of Phase 7. Full reasoning:
+[docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md).
 
 ## 8. Out of scope
 
@@ -163,8 +161,8 @@ updated to match once it is.
   of `infra/` — Phase 8.
 - A full least-privilege IAM audit pass — Phase 8.
 - On-demand/dashboard-triggered scanning.
-- Whether EKS or any Kubernetes-based deployment target belongs in this
-  phase at all — open, see §7 above and
+- EKS or any Kubernetes-based deployment target — decided against for
+  this phase, see §7 above and
   [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md).
 - Multi-region, autoscaling, or any production-scale sizing — this is
   a portfolio demo, sized minimal on purpose.
@@ -188,8 +186,8 @@ updated to match once it is.
 
 ## References
 
-- [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md) — the open
-  ECS-vs-EKS decision this phase is currently blocked on (§7 above)
+- [docs/ECS_VS_EKS_DECISION.md](ECS_VS_EKS_DECISION.md) — the
+  ECS-vs-EKS decision (resolved: ECS, §7 above)
 - [Plan_vigilant_engine.md, Phase 7](../Plan_vigilant_engine.md) — the
   task-level checklist this PRD doesn't duplicate
 - [docs/PRD.md §6 (Out of scope) / §7 (Roadmap)](PRD.md) — where

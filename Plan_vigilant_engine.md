@@ -801,6 +801,19 @@ proving cloud-security judgment, not about getting something public.
 - [ ] Least-privilege IAM audit pass — tighten Phase 7's roles further and
       document the reasoning, rather than leaving "reasonably scoped" as
       the final word
+- [ ] SARIF upload — add a `github/codeql-action/upload-sarif` step to
+      `security-scans.yml` so Semgrep's findings (SARIF is a standard
+      several of this project's scanners can emit, not just Semgrep) show
+      up natively in GitHub's own **Security → Code scanning** tab,
+      alongside Dependabot/CodeQL. Optional interview-breadth coverage,
+      not required by anything above — this project's own dashboard stays
+      the primary UI (normalizing six scanners into one place is the
+      actual point being demonstrated); this is a second, standard-format
+      front end onto the same underlying JSON, worth being able to say
+      "I know how to wire up" even where it wasn't the chosen path.
+      Concept background: `docs/SEMGREP_MANUAL_TESTING_STEPS.md`. Needs an
+      actual push to a GitHub Actions run to verify, so it's real work,
+      not a five-minute add.
 
 ## Phase 9 — AI-generated fix review pipeline
 

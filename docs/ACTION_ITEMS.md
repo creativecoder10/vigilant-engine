@@ -46,3 +46,13 @@ belong on this list rather than a code checklist:
   the GitHub API/CLI on your behalf — worth seeing the Actions log and
   the severity filter working firsthand before it comes up in
   conversation.
+- Install the **Semgrep** VS Code extension (marketplace listing:
+  "Semgrep" by Semgrep Inc.) and try it on `demo-target/`. Same engine,
+  same JSON underneath as the terminal walkthrough — it just runs
+  `semgrep` automatically in the background on every save instead of you
+  typing the command, showing red/yellow squiggly underlines directly
+  under flagged code with a hover tooltip, exactly like ESLint's VS Code
+  extension does for lint errors today (security rules instead of style
+  rules). Everything so far (`docs/SEMGREP_MANUAL_TESTING_STEPS.md`) has
+  been terminal-only — worth seeing the other front door firsthand,
+  optional breadth rather than required.
