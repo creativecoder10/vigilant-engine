@@ -279,11 +279,42 @@ Three different things, easy to conflate:
 
 | Location | What lives there | Exists in this repo? |
 | --- | --- | --- |
-| `demo-target/.semgrepignore` (same folder + syntax as `.gitignore`) | project-specific scan exclusions written by hand | **No** — checked via `find`, doesn't exist |
+| `demo-target/.semgrepignore` (same folder + syntax as `.gitignore`) | project-specific scan exclusions written by hand | **Yes, as a placeholder** (added later — see below). Originally checked via `find`: didn't exist |
 | Semgrep's built-in default ignores (baked into the tool, no file) | `node_modules/`, `.git/`, `dist/`, `build/`, lockfiles, minified files | N/A — this is what actually caused **"156 files skipped via .semgrepignore patterns"** in the earlier scan output. No file involved — Semgrep applies these automatically and reports them under that label, which reads as if a file exists when it doesn't |
 | `~/.semgrep/` (global, home directory) | `settings.yml` (login/telemetry state) + `semgrep.log` — confirmed present on this machine | Yes, but it's CLI account/log state, not an ignore file |
 
-To add real project-specific exclusions later: create `demo-target/.semgrepignore` by hand, next to `demo-target/.gitignore` — same convention, just doesn't exist yet since nothing's needed to override the defaults.
+To add real project-specific exclusions later: create `demo-target/.semgrepignore` by hand, next to `demo-target/.gitignore` — same convention.
+
+### ✅ Placeholder added — and where it has to live (tested, not assumed)
+
+- [x] Created `demo-target/.semgrepignore`: `.gitignore` syntax, currently
+      just dependency/build-output paths plus Semgrep's own default test
+      paths. Filename is exactly `.semgrepignore` — not `.semgrep` (that's
+      a different thing: a conventional *folder* for custom rule files).
+- [x] Creating the file **replaces** Semgrep's built-in defaults rather
+      than extending them, so the defaults we still want are restated in
+      it. Verified behavior-neutral: still **68 findings**, 1,028 files
+      scanned (1,027 before — the extra one is the new file itself).
+- [x] **Location matters — tested three ways** by adding `frontend/` as a
+      probe pattern and re-running `semgrep --config auto demo-target/`:
+
+  | Where the file was | Result |
+  | --- | --- |
+  | `vigilant-engine/.semgrepignore` (repo root) | **Ignored** — still 1,027 files scanned |
+  | `demo-target/.semgrepignore` | **Honored** — dropped to 641 files scanned |
+
+  Why: `demo-target/` is a **git submodule** (upstream Juice Shop), i.e. its
+  own git repo, and Semgrep reads `.semgrepignore` from the root of the
+  project being scanned — not from wherever you happen to run the command.
+- Side observation (cause not investigated): the same probe changed
+  findings from 68 to 93 despite scanning *fewer* files — plausibly
+  `--config auto` picking a different rule mix based on what languages it
+  sees, which would be another reason `auto` isn't reproducible in CI.
+- **Caveat:** the file sits inside the submodule's working tree, so it
+  shows as untracked content under `demo-target` and can't be committed to
+  vigilant-engine without forking Juice Shop. Fine as a local
+  demonstration; for anything CI-enforced, exclusions would go on the
+  command line (`--exclude`) or a root file when scanning from `.`.
 
 ## Concept — what is `demo-target/.github/workflows/ci.yml`?
 
@@ -323,6 +354,176 @@ launch, not while already running.
       Runtime Status panel showed "Not yet activated" / "Uncaught Errors
       (1)" — the language client never finished starting, the setting
       change alone didn't restart it.
+
+## Concept — what is the "Semgrep server," and when does it scan?
+
+The extension starts a **language server** (`semgrep lsp`) — a long-running
+background process — when VS Code opens. The editor sends events ("file
+opened", "file saved"); the server scans and sends findings back as
+squiggles. Same architecture as the ESLint extension's ESLint server.
+
+**What "language server" means:** a separate program that understands one
+language/tool and answers an editor's questions over a standard protocol
+(**LSP**, Language Server Protocol, JSON over stdin/stdout). Without a
+standard, every editor would need its own plugin per tool; with it, one
+server works in VS Code, IntelliJ, Neovim, etc. The editor only sends events
+and draws results — the analysis happens in the server.
+
+```
+VS Code ──"user saved ci.yml"──▶ Semgrep server (semgrep lsp)
+        ◀──"line 188: rule X"───   scans, returns findings
+```
+
+Plain version: a restaurant — editor = waiter, language server = kitchen (a
+background helper program), LSP = the standard order slip. "Server" just
+means a program that waits for requests, not a remote machine.
+
+**And the "Semgrep client"?** The extension itself — the waiter. It's the
+small piece of code inside VS Code that launches the server, sends events
+("file saved"), and draws what comes back. Server = the `semgrep lsp`
+process. That's why the first-open error read *"Semgrep client: couldn't
+create connection to server"* — the waiter couldn't reach the kitchen
+(the server never started, since the extension couldn't find `semgrep`).
+
+FE analogy: an API contract — editor = client, server = backend, LSP = the
+spec. Already familiar: `tsserver` (TypeScript autocomplete), ESLint's server.
+
+### My understanding of LSP (own words, Semgrep as the example)
+
+LSP is a shared protocol that lets an editor (VS Code) stay "dumb" about what
+any given tool does, while still getting live results from it as I work.
+
+| Half | What it is (Semgrep) | Its job |
+| --- | --- | --- |
+| **Client** | the VS Code Semgrep extension | Does no scanning. Watches editor triggers (file opened / saved) and forwards them as standard messages. Renders results back: squiggles, Problems panel. |
+| **Server** | the `semgrep` binary launched as `semgrep lsp`, a background process on my Mac | Receives the event messages, runs the scan rules, sends results back in the same message format. |
+
+```
+trigger in editor ─▶ client ──JSON-RPC──▶ server (scans) ──JSON-RPC──▶ client ─▶ squiggles
+```
+
+They only talk through one shared format (**JSON-RPC**), so the client never
+needs to know how Semgrep scans, and Semgrep never needs to know how VS Code
+renders.
+
+**Generalizes:** the same split is how VS Code plugs into *any* locally
+installed tool that speaks LSP — a Python type-checker, a linter, a security
+scanner. The tool must (a) be installed on the machine and (b) implement an
+LSP server; the extension is a thin adapter wiring editor triggers to that
+server and painting results back. One protocol, many tools, instead of a
+custom integration per tool.
+
+Refinement: LSP itself can also forward *edit* events (`didChange`, every
+keystroke), but Semgrep's server only scans on open/save (see Triggers
+below) — the protocol allows it, the tool chooses what to act on.
+
+**Triggers** (per Semgrep's docs): open workspace, open file, save file,
+Command Palette. **No extension setting changes the trigger** — verified by
+listing every setting in the extension's `package.json`. The related one,
+`semgrep.scan.onlyGitDirty` (default `true`), is a *scope* filter (report
+only lines changed since last commit), not a *when*.
+
+| Layer | Trigger | Runs through | Set up here? |
+| --- | --- | --- | --- |
+| Editor extension | open/save file | language server | in progress |
+| Pre-commit hook | `git commit` | CLI | no |
+| CI | push/PR | CLI | yes (`security-scans.yml`) |
+
+Useful commands (Command Palette): **Semgrep: Restart Language Server**,
+Scan changed files in workspace, Scan all files in workspace, Update rules.
+
+### Is the editor ↔ server call a network call? Can I see it?
+
+**Not a network call.** VS Code launches `semgrep lsp` as a *child process*
+and talks to it over **stdin/stdout pipes** (JSON-RPC messages). No port, no
+HTTP, no socket — so Chrome-style Network-tab tools can't see it.
+
+```
+Network call (browser → API):   Chrome ──TCP/HTTP──▶ remote server   (DevTools Network tab)
+LSP call (editor → server):     VS Code ──stdin/stdout pipe──▶ local child process
+```
+
+FE analogy: closer to `postMessage` between a page and a Web Worker than to
+`fetch()` — two processes on one machine, messages over a private channel.
+
+**How to see the messages** (the DevTools-Network-tab equivalent):
+
+![Semgrep trace.server setting](../screenshots/semgrep-trace-server-setting.png)
+
+1. Settings → search `semgrep.trace` → **Semgrep › Trace: Server** →
+   `messages` (default `off`; `verbose` adds message bodies).
+2. View → Output → dropdown (top right of the panel) → pick **Semgrep
+   (Client)**. A "channel" is just a named log stream; each extension gets its
+   own, and this dropdown is how you switch between them.
+3. Confirm the process exists: `ps aux | grep semgrep` shows
+   `.../semgrep.semgrep-1.17.0-darwin-arm64/dist/osemgrep-pro lsp ...`
+
+**What it looks like** — real output from **Semgrep (Client)** at `messages`
+level (method names + timing only, no payloads):
+
+```
+[Trace - 15:20:03] Sending request 'initialize - (0)'.
+[Trace - 15:20:04] Received response 'initialize - (0)' in 1188ms.
+[Trace - 15:20:04] Sending notification 'textDocument/didOpen'.
+[Trace - 15:20:04] Received notification 'textDocument/publishDiagnostics'.   ← findings → squiggles
+[Trace - 15:20:07] Received notification 'semgrep/rulesRefreshed'.
+```
+
+Two channels, two jobs:
+
+| Channel | Shows | Payloads? |
+| --- | --- | --- |
+| Semgrep (Client) | LSP messages (what the trace setting controls) | method names only at `messages` |
+| Semgrep (Server) | the server's own `--debug` log | yes — `didOpen` logs the **full file text** as JSON (`"text": "name: CI/CD Pipeline..."`) |
+
+Not verified: exact layout of `verbose` bodies (never turned it on).
+
+**Don't conflate:** the server itself makes real network calls — that's
+server ↔ internet, a separate hop from editor ↔ server. Seen in the Server log:
+
+```
+[01.14][INFO]: GET https://semgrep.dev/c/p/default
+[01.14][INFO]: finished downloading from https://semgrep.dev/c/p/default
+```
+
+(That one *would* show up in a proxy/Burp; the editor ↔ server pipe wouldn't.)
+The Settings screenshot also shows **Semgrep: Metrics** ticked = telemetry on.
+
+### Why does a Semgrep extension have a `package.json`?
+
+`package.json` isn't Node-app-only — it's the manifest for anything in the
+npm ecosystem, and **every VS Code extension has one** (name, version,
+`contributes.configuration` = the settings list, `main` = entry file). VS Code
+is Electron, so extensions are JS/TS run by VS Code's Node runtime.
+
+| Piece | Language | Where |
+| --- | --- | --- |
+| Extension (client — the "waiter") | TypeScript/JS | `out/main.js` |
+| Semgrep engine (server — the "kitchen") | OCaml, prebuilt binary | `dist/osemgrep-pro` |
+
+So Semgrep itself is **not** a JS tool; the extension is a thin JS wrapper
+that launches the binary. Find it: `~/.vscode/extensions/semgrep.semgrep-<ver>-<platform>/package.json`
+(or Extensions panel → Semgrep → gear → Manage → "Features" tab lists the
+same settings). FE analogy: same as an npm package that ships a native binary
+(`esbuild`, `swc`) — JS wrapper, non-JS engine.
+
+Interview line: "Editor-to-language-server is local IPC over stdio using
+JSON-RPC, not HTTP — the only network traffic is whatever the server does on
+its own, like fetching registry rules."
+
+## Concept — the Problems panel mixes every extension's findings
+
+After restarting the server, Problems showed **13**, but the 8 entries
+inspected were all `Context access might be invalid: DOCKER_TAG` /
+`VCS_REF` / `BUILD_DATE` / `HEROKU_APP` / `HEROKU_BRANCH` (severity 4 =
+warning) — from the **GitHub Actions** extension (`github.vscode-github-actions`,
+installed), which flags `${{ env.X }}` variables not defined in the workflow
+file. **Not Semgrep.** Also: an empty `Output → Semgrep (Client)` log is
+neutral — a client that starts cleanly often logs nothing.
+
+How to tell them apart: a Semgrep finding carries a Semgrep rule ID (e.g.
+`github-actions-mutable-action-tag`) and Semgrep as the source; a lint
+warning from another extension doesn't. Count alone proves nothing.
 
 ## Concept — real Semgrep finding vs. an unrelated link underline
 
@@ -387,10 +588,32 @@ explanation from the evidence, still to be confirmed by the test below.)
 - [ ] Test: File → New Window → Open Folder → `vigilant-engine/demo-target`,
       open `.github/workflows/ci.yml`, look at line 188 for a wavy underline
 
+## Concept — why line 188 (`uses: coverallsapp/github-action@v2`) is flagged
+
+`@v2` is a git **tag** on the action's repo, and tags can be re-pointed.
+Every CI run using `@v2` pulls whatever code `v2` points to *at that
+moment*, and runs it inside the workflow — here with
+`github-token: ${{ secrets.GITHUB_TOKEN }}` (line 190) in reach. Real
+precedent: March 2025, `tj-actions/changed-files` had its version tags
+re-pointed to malicious code that leaked secrets from CI logs.
+
+| | Tag `@v2` | Full commit SHA `@<40 chars>` |
+| --- | --- | --- |
+| Who controls the target | action owner (or an attacker with their account) | nobody — commits are immutable |
+| Frontend analogy | `<script src="cdn/lib@2">` with no integrity hash | same script with an SRI hash / lockfile integrity hash |
+
+Fix: `uses: coverallsapp/github-action@<full sha>  # v2`; Dependabot can
+keep pinned SHAs updated. Practical risk here is low (reputable vendor,
+and it's Juice Shop's own CI file — report, don't fix); it's a hygiene
+rule. Interview hook: supply-chain security, OpenSSF Scorecard's
+"Pinned-Dependencies" check.
+
 ## 🔶 YOU ARE HERE — confirming the extension is actually connected
 
 Cheapest signal first, real proof last:
 
+- [ ] Restart the server: `Cmd+Shift+P` → **Semgrep: Restart Language
+      Server**, then work through the checks below
 - [ ] No repeat of the "couldn't create connection" error toasts after the
       `semgrep.path` settings change
 - [ ] `View → Output` → pick **"Semgrep"** from the panel's dropdown —

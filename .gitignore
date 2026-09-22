@@ -14,3 +14,10 @@ node_modules/
 
 # OS
 .DS_Store
+
+# Local scanner reports (gitleaks output contains plaintext secrets)
+*-results.json
+gitleaks-redacted.json
+
+# Personal notes (not published)
+notes/
