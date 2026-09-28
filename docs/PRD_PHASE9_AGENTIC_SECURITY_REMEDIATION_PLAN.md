@@ -1,4 +1,4 @@
-# PRD — AI-Generated Fix Review Pipeline
+# PRD — Phase 9: Agentic Security Remediation Plan
 
 **Status:** Not started (Phase 9 of `Plan_vigilant_engine.md`).
 **Owner:** Deepesh Dang
@@ -6,6 +6,20 @@
 **Relationship to main project:** an extension of `vigilant-engine`
 (see [docs/PRD.md](PRD.md)), reusing its ingestion DB and schema rather
 than a new repo or a new pipeline.
+
+## Progress note (as of 2026-09-28)
+
+- Doc renamed from `PRD_FIX_REVIEW.md` → this file; a separate Phase 10
+  (APRA CPS 234 compliance mapping) was added to the plan alongside it —
+  unrelated scope, doesn't touch this phase's requirements.
+- Phase 9 substantive work has **not started**: no findings selected from
+  the real ingestion DB yet, no fix proposed by Claude, no checklist run
+  against a real finding.
+- A candidate SAST finding has been identified from a local Semgrep run
+  against `demo-target` (`login.ts:34`, `CWE-89` — see §4.1); still need
+  to confirm it's actually present via `GET /findings` against the real
+  ingested DB, then pick the SCA and secret picks to complete the 3-5
+  finding sample per §4.1.
 
 ## 1. Problem
 
@@ -68,6 +82,7 @@ how you knew" — a question the main dashboard project doesn't answer.
 | Must use real findings, not fixtures | Pulled via `GET /findings` against the actual CI run's 180 ingested findings — `ingestion/tests/fixtures/*.json` are synthetic (e.g. the Semgrep fixture is a Python `eval()` example; Juice Shop is a Node/TypeScript app, so real Semgrep findings look different and must be sourced from the real DB, not the test fixtures). |
 | Sample must span different remediation shapes | At minimum: one SAST/code-level finding (Semgrep — a source-file patch), one SCA/dependency finding (npm audit or Snyk — a version bump, not a code patch), and one secret finding (gitleaks — remediation is "rotate + remove from history," not "edit code") if one exists in the real run; substitute a second SAST finding of a different CWE if not. The point is that "propose a fix" means something different per category, and the checklist has to hold up across all of them. |
 | Sample size | 3-5 findings — enough to demonstrate the checklist generalizes, small enough to review each one with real depth rather than rubber-stamping. |
+| Candidate SAST finding | `demo-target/routes/login.ts:34` — Semgrep `javascript.sequelize.security.audit.sequelize-injection-express.express-sequelize-injection`, `ERROR` severity, `CWE-89` (SQL Injection), Juice Shop's classic login-bypass query built from tainted user input. Identified from a local Semgrep run against the pinned submodule (`semgrep-results.json`, not committed — see `.gitignore`); still needs to be looked up via `GET /findings` against the real ingested DB (per the row above) rather than cited from that local file directly. `demo-target/routes/search.ts:23` is the same rule/CWE and works as a backup if `login.ts` turns out unsuitable. |
 
 ### 4.2 Fix generation
 
@@ -125,6 +140,24 @@ how you knew" — a question the main dashboard project doesn't answer.
 - Every proposed fix that gets rejected or modified is documented with
   the *reason*, not just the verdict — this is what turns the write-up
   into evidence of review judgment rather than a changelog.
+
+## 7. Guardrails — keeping the AI's proposed fix from going rogue
+
+The Non-goals in §2 already say "no unsupervised merge." This section is
+the concrete mechanism, not just the intent — the artifact that answers
+an interviewer's "how do you keep agentic AI security work from going
+rogue," since that framing is exactly what §1's target posting names.
+
+| Control | What it prevents |
+| --- | --- |
+| The AI never writes to the working tree, a branch, or `demo-target` directly | Its entire output is diff/patch text (4.2). There is no code path for the model to commit or push anything — a human runs `git apply` by hand, after reading the diff. |
+| Scope is pinned to one finding's `file_path`/`line_number` before the prompt is sent | The ask is "propose a fix for this rule at this file:line," never "fix this codebase" — bounds what the model is even positioned to touch, so a "fix" can't quietly rewrite unrelated code. |
+| `demo-target` stays a pinned submodule commit throughout | A rejected, half-applied, or bad fix can't drift the target app's baseline. Every review starts from the same known-good commit; nothing is ever left partially patched in place. |
+| Prompt + raw response saved verbatim, per finding (4.2) | Makes every proposal auditable after the fact — including rejected ones. No "trust me, I reviewed it" without the artifact to check it against. |
+| The checklist is run by a human, not the same LLM self-grading its own patch | The model that wrote the fix doesn't also decide if it's good. An LLM grading its own homework is the one failure mode that would quietly undermine the entire exercise. |
+| Verdict is always explicit — Accept / Accept with changes / Reject — never a silent apply | Nothing reaches "done" without a written decision and reasoning (4.3), which is also what keeps the write-up honest instead of a changelog. |
+| Tests run locally/in the existing sandboxed setup, never against CI or a real deploy | Matches §5's Out-of-scope: no re-running scanners in CI against a patched fork. Verification stays inside a throwaway check, not something that can affect a shared pipeline. |
+| At least one deliberately hard case gets reviewed (§6) | Guards against the checklist becoming theater — if every sampled fix sails through clean, the exercise hasn't actually tested whether the review *catches* anything. |
 
 ## References
 
