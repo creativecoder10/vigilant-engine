@@ -2,12 +2,17 @@ import { getFindings, getStats } from "@/lib/api";
 import { SeverityStats } from "@/components/SeverityStats";
 import { SourceBreakdown } from "@/components/SourceBreakdown";
 import { FindingsTable } from "@/components/FindingsTable";
-import { SEVERITY_ORDER } from "@/lib/colors";
-import type { Severity } from "@/types/finding";
+import { SEVERITY_ORDER, SOURCE_LABEL, SOURCE_ORDER } from "@/lib/colors";
+import type { Severity, Source } from "@/types/finding";
 
 function parseSeverity(value: string | string[] | undefined): Severity | null {
   const candidate = Array.isArray(value) ? value[0] : value;
   return (SEVERITY_ORDER as string[]).includes(candidate ?? "") ? (candidate as Severity) : null;
+}
+
+function parseSource(value: string | string[] | undefined): Source | null {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return (SOURCE_ORDER as string[]).includes(candidate ?? "") ? (candidate as Source) : null;
 }
 
 export default async function DashboardPage({
@@ -15,11 +20,18 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const activeSeverity = parseSeverity((await searchParams).severity);
+  const params = await searchParams;
+  const activeSeverity = parseSeverity(params.severity);
+  const activeSource = parseSource(params.source);
 
   const [stats, findings] = await Promise.all([
     getStats(),
-    getFindings({ status: "open", severity: activeSeverity ?? undefined, limit: 100 }),
+    getFindings({
+      status: "open",
+      severity: activeSeverity ?? undefined,
+      source: activeSource ?? undefined,
+      limit: 100,
+    }),
   ]);
 
   return (
@@ -33,12 +45,13 @@ export default async function DashboardPage({
 
       <SeverityStats stats={stats} activeSeverity={activeSeverity} />
 
-      <SourceBreakdown stats={stats} />
+      <SourceBreakdown stats={stats} activeSource={activeSource} />
 
       <section>
         <h2 className="mb-3 text-sm font-medium" style={{ color: "var(--ink-secondary)" }}>
           Open findings
           {activeSeverity ? ` — ${activeSeverity}` : ""}
+          {activeSource ? ` — ${SOURCE_LABEL[activeSource]}` : ""}
         </h2>
         <FindingsTable findings={findings} />
       </section>
