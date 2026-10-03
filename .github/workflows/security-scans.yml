@@ -129,6 +129,18 @@ jobs:
       - name: Ingest ZAP results
         run: python3 .github/scripts/post_to_ingestion.py --source zap --file zap-results.json
 
+      # ---------- Trivy (container image scanning) ----------
+      - name: Install Trivy
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.74.0
+
+      - name: Run Trivy against the Juice Shop image
+        # Same image ZAP already pulled above - scanning it here reuses that
+        # pull instead of fetching it twice.
+        run: trivy image -f json -o trivy-results.json bkimminich/juice-shop:v20.2.0 || true
+
+      - name: Ingest Trivy results
+        run: python3 .github/scripts/post_to_ingestion.py --source trivy --file trivy-results.json
+
       - name: Upload raw scanner output
         if: always()
         uses: actions/upload-artifact@v4
@@ -140,6 +152,7 @@ jobs:
             snyk-results.json
             gitleaks-results.json
             zap-results.json
+            trivy-results.json
           if-no-files-found: ignore
 
       - name: Show resulting stats and write run summary
