@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Severity, Stats } from "@/types/finding";
 import { SEVERITY_COLOR, SEVERITY_ORDER } from "@/lib/colors";
+import { useUrlFilter } from "@/lib/navigation-pending";
 
 const SEVERITY_LABEL: Record<Severity, string> = {
   critical: "Critical",
@@ -18,19 +18,10 @@ const SEVERITY_LABEL: Record<Severity, string> = {
  * table below), clicking the active tile again - or "All" - clears it.
  */
 export function SeverityStats({ stats, activeSeverity }: { stats: Stats; activeSeverity: Severity | null }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const setParam = useUrlFilter();
 
   function setSeverity(next: Severity | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next) {
-      params.set("severity", next);
-    } else {
-      params.delete("severity");
-    }
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    setParam("severity", next);
   }
 
   return (
@@ -74,7 +65,7 @@ function Tile({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="rounded-lg border p-4 text-left transition-colors"
+      className="rounded-lg border p-3 text-left transition-colors sm:p-4"
       style={{
         borderColor: active ? color : "var(--border)",
         backgroundColor: "var(--surface)",
@@ -89,7 +80,7 @@ function Tile({
           {label}
         </span>
       </div>
-      <p className="mt-2 text-3xl font-semibold tabular-nums">{count}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums sm:mt-2 sm:text-3xl">{count}</p>
     </button>
   );
 }

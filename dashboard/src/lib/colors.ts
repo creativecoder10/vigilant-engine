@@ -35,3 +35,13 @@ export const SOURCE_LABEL: Record<Source, string> = {
   gitleaks: "gitleaks",
   trivy: "Trivy",
 };
+
+// Each scanner's official site/GitHub repo - the legend links out to these.
+export const SOURCE_LINK: Record<Source, string> = {
+  semgrep: "https://semgrep.dev",
+  npm_audit: "https://docs.npmjs.com/cli/v10/commands/npm-audit",
+  snyk: "https://snyk.io",
+  zap: "https://www.zaproxy.org",
+  gitleaks: "https://github.com/gitleaks/gitleaks",
+  trivy: "https://trivy.dev",
+};

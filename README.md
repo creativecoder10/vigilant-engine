@@ -14,6 +14,12 @@ the hood.
 against Juice Shop and this project's own built images, normalized into
 one schema and persisted in the `docker compose` stack's volume-backed DB.
 
+**This is a snapshot from real scanner runs, not a continuously
+re-scanning system.** Scanners are run (locally or in CI) and their output
+is posted to the ingestion API by hand or by a workflow step — findings
+are only as fresh as the last time each scanner actually ran, the same as
+the live deployment below.
+
 <table>
 <tr>
 <td><img src="docs/screenshots/dashboard-light.png" alt="Dashboard, light mode" width="500"></td>

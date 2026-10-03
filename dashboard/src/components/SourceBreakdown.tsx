@@ -1,30 +1,19 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Source, Stats } from "@/types/finding";
-import { SOURCE_COLOR, SOURCE_LABEL, SOURCE_ORDER } from "@/lib/colors";
+import { SOURCE_LABEL, SOURCE_ORDER } from "@/lib/colors";
+import { useUrlFilter } from "@/lib/navigation-pending";
 
 /**
- * Doubles as the per-scanner summary and the source filter, same pattern as
- * SeverityStats: clicking a row sets ?source=<x> (read server-side by the
- * page to filter the findings table below), clicking the active row again -
- * or "All" - clears it.
+ * A dropdown filter (compact, so it doesn't push the findings table far down
+ * the page on mobile). The per-scanner legend/links live in the page footer
+ * instead - this section is purely the filter control.
  */
 export function SourceBreakdown({ stats, activeSource }: { stats: Stats; activeSource: Source | null }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const max = Math.max(1, ...SOURCE_ORDER.map((source) => stats.by_source[source]));
+  const setParam = useUrlFilter();
 
   function setSource(next: Source | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next) {
-      params.set("source", next);
-    } else {
-      params.delete("source");
-    }
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    setParam("source", next);
   }
 
   return (
@@ -33,80 +22,43 @@ export function SourceBreakdown({ stats, activeSource }: { stats: Stats; activeS
       className="rounded-lg border p-4"
       style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
     >
-      <h2 className="mb-4 text-sm font-medium" style={{ color: "var(--ink-secondary)" }}>
+      <h2 className="mb-3 text-sm font-medium" style={{ color: "var(--ink-secondary)" }}>
         Open findings by scanner
       </h2>
-      <ul className="flex flex-col gap-2">
-        <Row
-          label="All"
-          count={stats.total_open}
-          widthPct={100}
-          active={activeSource === null}
-          color="var(--ink-muted)"
-          onClick={() => setSource(null)}
-        />
-        {SOURCE_ORDER.map((source) => {
-          const count = stats.by_source[source];
-          return (
-            <Row
-              key={source}
-              label={SOURCE_LABEL[source]}
-              count={count}
-              widthPct={(count / max) * 100}
-              active={activeSource === source}
-              color={SOURCE_COLOR[source]}
-              onClick={() => setSource(activeSource === source ? null : source)}
-            />
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
 
-function Row({
-  label,
-  count,
-  widthPct,
-  active,
-  color,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  widthPct: number;
-  active: boolean;
-  color: string;
-  onClick: () => void;
-}) {
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onClick}
-        aria-pressed={active}
-        className="grid w-full grid-cols-[7rem_1fr_2.5rem] items-center gap-3 rounded-md p-1 text-left transition-colors"
-        style={{
-          boxShadow: active ? `inset 0 0 0 1px ${color}` : undefined,
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-          <span className="truncate text-sm">{label}</span>
-        </div>
-        <div className="h-4 rounded-full" style={{ backgroundColor: "var(--border)" }}>
-          <div
-            className="h-4 rounded-full"
-            style={{
-              width: count > 0 ? `${widthPct}%` : 0,
-              backgroundColor: color,
-            }}
-          />
-        </div>
-        <span className="text-right text-sm tabular-nums" style={{ color: "var(--ink-secondary)" }}>
-          {count}
-        </span>
-      </button>
-    </li>
+      <div className="relative w-full sm:max-w-[33%]">
+        <select
+          aria-label="Filter findings by scanner"
+          value={activeSource ?? "all"}
+          onChange={(event) => setSource(event.target.value === "all" ? null : (event.target.value as Source))}
+          className="w-full appearance-none rounded-md border py-2 pl-3 pr-9 text-sm"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--background)", color: "var(--foreground)" }}
+        >
+          <option value="all">All scanners ({stats.total_open})</option>
+          {SOURCE_ORDER.map((source) => (
+            <option key={source} value={source}>
+              {SOURCE_LABEL[source]} ({stats.by_source[source]})
+            </option>
+          ))}
+        </select>
+        {/* appearance-none hides the browser's own arrow (its position isn't
+            controllable via padding) so this hand-drawn one can sit exactly
+            where we want it, independent of the box's width. */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="var(--ink-muted)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+    </section>
   );
 }
