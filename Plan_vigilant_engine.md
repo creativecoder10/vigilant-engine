@@ -811,17 +811,17 @@ proving cloud-security judgment, not about getting something public.
       actual point being demonstrated); this is a second, standard-format
       front end onto the same underlying JSON, worth being able to say
       "I know how to wire up" even where it wasn't the chosen path.
-      Concept background: `docs/SEMGREP_MANUAL_TESTING_STEPS.md`. Needs an
+      Concept background: `docs/manual-setup/SEMGREP_MANUAL_TESTING_STEPS.md`. Needs an
       actual push to a GitHub Actions run to verify, so it's real work,
       not a five-minute add.
 
-## Phase 9 — AI-generated fix review pipeline
+## Phase 9 — Agentic security remediation plan
 
 Extends the findings pipeline (Phases 1-4) rather than adding a new
 service: takes real findings already in the ingestion DB, has an LLM
 propose a fix for each, then runs and documents the validation a human
 reviewer would actually do. Full requirements and rationale:
-[docs/PRD_FIX_REVIEW.md](docs/PRD_FIX_REVIEW.md).
+[docs/PRD_PHASE9_AGENTIC_SECURITY_REMEDIATION_PLAN.md](docs/PRD_PHASE9_AGENTIC_SECURITY_REMEDIATION_PLAN.md).
 
 ### 9.1 Select findings
 
@@ -885,3 +885,149 @@ reviewer would actually do. Full requirements and rationale:
       `FindingStatus.FIXED` transition on "Accept," surfaced on the
       dashboard — only after 9.1-9.5 are done; deferred by default so
       this doesn't expand into unscoped dashboard feature work
+
+## Phase 10 — APRA CPS 234 compliance mapping (bolt-on GRC view)
+
+**Before starting this phase, read
+[docs/PRD_CPS234_COMPLIANCE.md](docs/PRD_CPS234_COMPLIANCE.md)** —
+problem statement, the deliberately narrow control scope, and the
+explicit non-compliance framing that has to ship with the feature.
+
+Extends the findings pipeline (Phases 1-6) rather than adding a new
+service, same shape as Phase 9: a read-only lens over data already
+collected, not new scanning. Maps existing scanners/CI runs to the
+handful of CPS 234 paragraphs about implementing and systematically
+testing information-security controls — the part of the standard this
+project's own pipeline can genuinely evidence.
+
+### 10.1 Control library
+
+- [ ] Re-read the current published APRA CPS 234 standard (apra.gov.au)
+      and confirm exact paragraph numbers/wording before curating —
+      don't ship citations drafted from memory unverified
+- [ ] Curate 5-8 control-implementation-and-testing requirements only
+      (not governance, incident notification, third-party oversight, or
+      internal audit — see PRD §5)
+- [ ] Store as a small static config (`compliance/cps234_controls.json`
+      or similar) — internal ID, plain-English summary, category; not a
+      new database table unless the mapping logic genuinely needs one
+
+### 10.2 Evidence mapping
+
+- [ ] Map each control to the real pipeline signal that evidences it:
+      Semgrep (source-level testing), npm audit/Snyk (dependency/
+      third-party risk testing), gitleaks (credential-exposure testing),
+      OWASP ZAP (deployed-application-layer testing), Trivy (container/
+      infra image testing), the dashboard's open→fixed `FindingStatus`
+      lifecycle (timely remediation, not just detection)
+- [ ] No control marked "covered" without naming the actual mechanism —
+      no mapping on the strength of a plan or an intention
+
+### 10.3 Dashboard compliance view
+
+- [ ] New "Compliance" page/tab in the existing Next.js dashboard,
+      additive to the current findings/severity views
+- [ ] Per-control card: requirement text, mapped scanner(s), live
+      open/total finding counts from that scanner category via the
+      existing `GET /findings` / `GET /stats` — not hardcoded numbers
+- [ ] Drill-through from each card to the existing findings view,
+      pre-filtered to that scanner/source
+- [ ] Visible disclaimer on the view itself: self-assessment/
+      demonstration mapping, not a compliance certification or audit
+      opinion, and explicitly not covering governance/incident-
+      notification/third-party-oversight requirements
+
+### 10.4 Write-up
+
+- [ ] One doc (or a section of the PRD) stating, per mapped control,
+      the specific mechanism that evidences it — the artifact an
+      interviewer's "how would this evidence a CPS 234 requirement"
+      question gets answered from
+- [ ] Explicit scope statement of what CPS 234 areas this does *not*
+      cover, kept next to the mapping itself, not buried only in the PRD
+
+## Phase 11 — ZAP full active scan + broader automated coverage (stretch)
+
+**Before starting this phase, read
+[docs/manual-setup/ZAP_MANUAL_TESTING_STEPS.md](docs/manual-setup/ZAP_MANUAL_TESTING_STEPS.md)**
+— the baseline-vs-full-scan distinction and the OWASP Top 10 coverage gap
+this phase closes are already written up there.
+
+`security-scans.yml`'s ZAP step deliberately runs `zap-baseline.py`
+(passive + spider only) — safe and fast enough for an unattended job on
+every push, but it can't find real injection issues (OWASP A03), JS-only
+routes, or anything behind login. This phase closes those gaps, split by
+what's free to automate vs. what needs one-time setup first (per
+`job prep notes/DevSecOps/DEVSECOPS_PREP.md`'s headless-vs-automated note
+— all three items below still run unattended on every future push once
+set up, none require a human per run):
+
+### 11.1 Free to automate now
+- [ ] Add `-j` (Ajax Spider) to the existing `zap-baseline.py` CI step —
+      one flag, catches JS-rendered routes the standard spider misses
+
+### 11.2 One-time setup, then automated forever
+- [ ] Define a login Context (credentials + a login-success check) so the
+      CI scan can authenticate itself and reach logged-in pages
+- [ ] Configure the Access Control Testing add-on (user roles + expected
+      access per page) so authorization violations get checked on every run
+
+### 11.3 `zap-full-scan.py` (real active attacks)
+- [ ] Run `zap-full-scan.py` locally by hand against the Juice Shop
+      container first (see the manual runbook's stretch step) — confirm
+      real active-attack findings show up (expect new A03 Injection
+      alerts) before touching CI
+- [ ] Decide: replace the baseline step, or run both (baseline on every
+      push, full-scan on a schedule/manual trigger only, since it's slower)
+- [ ] Wire the chosen shape into `security-scans.yml`; confirm
+      `app/parsers/zap.py` handles full-scan output the same as baseline
+      output (same JSON shape expected, but verify — don't assume)
+
+### 11.4 Closeout
+- [ ] Update `docs/PRD.md` §4.3 and this file's Phase 3 section once
+      shipped, same as every other phase closeout in this project
+
+**Not in scope here — a separate, human-only track, not a CI task:**
+manually exploring the app via proxy to discover routes (see
+`docs/manual-setup/ZAP_FULL_COVERAGE_WALKTHROUGH.md`) — valuable for
+understanding DAST, but structurally can't be automated, since it
+requires a person deciding what to click.
+
+## Phase 12 — always-on dashboard hosting (small backend + DB)
+
+**Why this exists, separate from Phase 7:** Phase 7 deploys the full
+stack (Juice Shop + ingestion + dashboard + RDS) via Terraform, but as
+**deploy-and-teardown** — no ongoing cost, but also no permanent link to
+point a hiring manager at. Juice Shop itself is the risky, resource-heavy
+part (a fingerprinted, deliberately vulnerable app — real bots/scanners
+actively probe for it); the dashboard is just a read-only screen over
+already-collected findings and carries none of that risk. Splitting them
+lets the dashboard stay always-on and cheap without keeping the
+vulnerable app (or the NAT gateway/RDS/ALB cost around it) running 24/7.
+
+- [x] Stand up a small, cheap, always-on Postgres (Supabase or Neon free
+      tier) — Neon
+- [x] Host the ingestion API somewhere reachable and cheap (Render or
+      Fly.io free tier) — same `ingestion/Dockerfile` from Phase 5, just a
+      different host than AWS — Render
+- [x] Seed it with a real findings snapshot from an actual scan run (not
+      a live-scanning Juice Shop instance — a static-ish dataset is the
+      honest, low-risk shape for something public and permanent) —
+      semgrep/gitleaks/zap/snyk/Trivy all posted; npm audit left at 0 by
+      choice (already well-covered by Snyk's SCA)
+- [x] Deploy the dashboard to Vercel (frontend deploy is Step 1, done
+      separately/first — see the manual-setup notes), point its
+      `INGESTION_API_URL` at this real, hosted API
+- [x] Confirm the live public URL actually renders real data — severity
+      filter and the new source filter (§ dashboard work) both working
+      end to end, not just localhost
+- [x] State the honest scope on the page/README itself: this is a
+      snapshot from a real pipeline run, not a continuously re-scanning
+      system — the pipeline runs on-demand for cost reasons, same
+      reasoning as Phase 7's deploy-and-teardown default
+
+**Shipped.** Live at the Vercel URL on top of Render + Neon. Also picked
+up, beyond the original checklist: a cold-start warm-up retry in
+`post_to_ingestion.py`, a collapsible column-filter panel + pagination on
+the findings table, SEO/Open Graph metadata, and a page footer carrying
+the scope disclaimer plus scanner links.

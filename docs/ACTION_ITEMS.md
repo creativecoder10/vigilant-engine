@@ -53,6 +53,6 @@ belong on this list rather than a code checklist:
   typing the command, showing red/yellow squiggly underlines directly
   under flagged code with a hover tooltip, exactly like ESLint's VS Code
   extension does for lint errors today (security rules instead of style
-  rules). Everything so far (`docs/SEMGREP_MANUAL_TESTING_STEPS.md`) has
+  rules). Everything so far (`docs/manual-setup/SEMGREP_MANUAL_TESTING_STEPS.md`) has
   been terminal-only — worth seeing the other front door firsthand,
   optional breadth rather than required.
