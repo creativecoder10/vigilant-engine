@@ -65,7 +65,17 @@ jobs:
 
       - name: Install demo-target dependencies
         working-directory: demo-target
-        run: npm install
+        # --ignore-scripts: this job only needs node_modules resolved for
+        # npm audit/Snyk and source for Semgrep/gitleaks to scan - it never
+        # runs the app from this install (ZAP tests the official Docker
+        # image instead), so Juice Shop's own postinstall->build:frontend->
+        # sbom chain is unnecessary. It was also breaking CI: the sbom step
+        # (cyclonedx-esbuild) expects an esbuild metafile the current
+        # Angular build doesn't produce, failing before any scanner ran.
+        # Skipping lifecycle scripts entirely is also a real hardening
+        # practice - untrusted third-party postinstall scripts don't get to
+        # run arbitrary code during CI.
+        run: npm install --ignore-scripts
 
       # ---------- Semgrep (SAST) ----------
       - name: Install Semgrep
